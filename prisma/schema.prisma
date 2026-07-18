@@ -1,0 +1,167 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+}
+
+model User {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String     @unique
+  phone        String?    @unique
+  passwordHash String
+  roleId       String?    @db.ObjectId
+  role         Role?      @relation(fields: [roleId], references: [id])
+  isActive     Boolean    @default(true)
+  orders       Order[]    // Added reverse relation
+  carts        Cart[]     // Added reverse relation
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  description String?
+  isDefault   Boolean  @default(false)
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model MenuCategory {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String       @unique
+  description String?
+  parentId    String?      @db.ObjectId
+  isActive    Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  items       MenuItem[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  slug             String         @unique
+  description      String?
+  price            Float
+  currency         String         @default("IRR")
+  imageUrl         String?
+  categoryId       String         @db.ObjectId
+  category         MenuCategory   @relation(fields: [categoryId], references: [id])
+  isFeatured       Boolean        @default(false)
+  isActive         Boolean        @default(true)
+  preparationTime  Int?           // in minutes
+  tags             String[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("menu_items")
+}
+
+model MediaAsset {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  fileName   String
+  url        String
+  mimeType   String
+  size       Int      // in bytes
+  ownerType  String
+  ownerId    String
+  createdAt  DateTime @default(now())
+
+  @@map("media_assets")
+}
+
+model Setting {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  siteName       String
+  logoUrl        String?
+  primaryColor   String   @default("#2f6b4f")
+  secondaryColor String   @default("#8b233d")
+  accentColor    String   @default("#f4e3b2")
+  themeMode      String   @default("system")
+  contactPhone   String?
+  contactEmail   String?
+  address        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model Order {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String?   @db.ObjectId
+  user            User?     @relation(fields: [userId], references: [id])
+  status          String    @default("pending") // pending, processing, ready, delivered, cancelled
+  subtotal        Float     @default(0)
+  discount        Float     @default(0)
+  total           Float     @default(0)
+  currency        String    @default("IRR")
+  notes           String?
+  deliveryType    String    @default("dine_in") // dine_in, takeaway, delivery
+  paymentStatus   String    @default("pending") // pending, paid, failed
+  payments        Payment[] // Added reverse relation
+  gateway         String?
+  authority       String?
+  refId           String?
+  gatewayStatus   String?
+  callbackUrl     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("orders")
+}
+
+model Cart {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String?  @db.ObjectId
+  user       User?    @relation(fields: [userId], references: [id])
+  status     String   @default("active") // active, abandoned, converted
+  items      Json?    // Storing { menuItemId, quantity, price } arrays
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("carts")
+}
+
+model Payment {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId       String   @db.ObjectId
+  order         Order    @relation(fields: [orderId], references: [id])
+  provider      String   @default("zarinpal")
+  amount        Float
+  currency      String   @default("IRR")
+  status        String   @default("pending") // pending, successful, failed
+  authority     String?
+  refId         String?
+  gatewayStatus String?
+  callbackUrl   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("payments")
+}
+
+model AuditLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  action    String
+  actorId   String?  @db.ObjectId
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
