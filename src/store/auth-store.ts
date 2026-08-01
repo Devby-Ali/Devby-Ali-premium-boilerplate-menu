@@ -28,9 +28,10 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.markHydrated();
-      },
+      // ⛔ دیگر از onRehydrateStorage استفاده نکنید
+      // onRehydrateStorage: () => (state) => {
+      //   state?.markHydrated();
+      // },
     },
   ),
 );

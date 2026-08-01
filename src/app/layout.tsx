@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
+import { Vazirmatn } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
+
+const vazirmatn = Vazirmatn({
+  subsets: ["arabic", "latin"],
+  variable: "--font-vazirmatn",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -31,16 +37,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" suppressHydrationWarning className="h-full">
-      <body
-        className="min-h-full bg-stone-50 text-stone-900 antialiased transition-colors dark:bg-stone-950 dark:text-stone-100"
-        cz-shortcut-listen="true"
-      >
+    <html
+      lang="fa"
+      dir="rtl"
+      suppressHydrationWarning
+      className={`${vazirmatn.variable} h-full`}
+    >
+      <body className={`${vazirmatn.className} min-h-full bg-background text-foreground antialiased`}>
         <ThemeProvider>
-          <div className="min-h-screen">
-            <SiteHeader />
-            {children}
-          </div>
+          <div className="min-h-screen">{children}</div>
         </ThemeProvider>
       </body>
     </html>

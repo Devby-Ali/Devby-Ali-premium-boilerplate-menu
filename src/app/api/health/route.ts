@@ -1,3 +1,9 @@
+import { apiSuccess } from "@/lib/api-response";
+
 export async function GET() {
-  return Response.json({ ok: true, message: "Premium Menu API is healthy" });
+  return apiSuccess({
+    ok: true,
+    message: "Premium Menu API is healthy",
+    timestamp: new Date().toISOString(),
+  });
 }

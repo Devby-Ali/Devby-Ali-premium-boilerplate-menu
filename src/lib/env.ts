@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+/**
+ * Schema for validating environment variables at build/runtime.
+ * All values have safe defaults for development; in production they MUST be set.
+ */
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -9,10 +13,10 @@ const envSchema = z.object({
     .trim()
     .min(1)
     .default("mongodb://127.0.0.1:27017/premium-boilerplate-menu"),
-  AUTH_SESSION_SECRET: z
+  JWT_SECRET: z
     .string()
     .trim()
-    .min(16)
+    .min(16, "JWT_SECRET must be at least 16 characters")
     .default("premium-menu-dev-secret"),
   NEXT_PUBLIC_API_BASE_URL: z.string().trim().min(1).default("/api"),
   ADMIN_INITIAL_PASSWORD: z.string().trim().min(4).default("admin1234"),
@@ -21,7 +25,7 @@ const envSchema = z.object({
 const parsedEnv = envSchema.safeParse({
   NODE_ENV: process.env.NODE_ENV,
   DATABASE_URL: process.env.DATABASE_URL,
-  AUTH_SESSION_SECRET: process.env.AUTH_SESSION_SECRET,
+  JWT_SECRET: process.env.JWT_SECRET,
   NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
   ADMIN_INITIAL_PASSWORD: process.env.ADMIN_INITIAL_PASSWORD,
 });

@@ -1,5 +1,6 @@
 .
 ./.agent.md
+./.cursor
 ./.env.example
 ./.gitignore
 ./AGENTS.md
@@ -13,7 +14,9 @@
 ./PRD.md
 ./prisma
 ./prisma/schema.prisma
+./prisma.config.ts
 ./project-structure.txt
+./proxy.ts
 ./public
 ./public/file.svg
 ./public/globe.svg
@@ -49,6 +52,8 @@
 ./src/app/api/auth
 ./src/app/api/auth/login
 ./src/app/api/auth/login/route.ts
+./src/app/api/auth/me
+./src/app/api/auth/me/route.ts
 ./src/app/api/health
 ./src/app/api/health/route.ts
 ./src/app/favicon.ico
@@ -78,7 +83,6 @@
 ./src/lib/env.ts
 ./src/lib/http.ts
 ./src/lib/utils.ts
-./src/middleware.ts
 ./src/server
 ./src/server/prisma.ts
 ./src/store
@@ -87,107 +91,3 @@
 ./src/types
 ./src/types/index.ts
 ./tsconfig.json
-
-
-
-/create-agent # Premium Next.js Boilerplate
-
-تو یک سنیور فول‌استک دولوپر حرفه‌ای با ۲۰ سال تجربه Next.js هستی. وظیفه‌ات ایجاد یک **Premium Boilerplate** برای منوی کافه‌رستوران است که شامل Admin Panel است.
-
-## الزامات اساسی پروژه:
-
-**Stack تکنولوژی:**
-- Next.js 16 با React Compiler فعال
-- TypeScript (strict mode)
-- Tailwind CSS V4 (token-based design system)
-- MongoDB + Prisma ORM
-- Zustand برای state management
-- Axios برای HTTP requests
-- shadcn/ui و Radix UI برای components
-- Auth.js (یا JWT اگر مناسب‌تر باشد)
-- Cloudinary یا S3 برای تصاویر
-
-**طراحی و Branding:**
-- سبک بصری: **مدرن و فضایی**
-- پالت رنگی: سبز درباری - زرشکی - کرم روشن
-- Theme: **Dark Mode و Light Mode** هر دو الزامی
-- Design System: Tailwind V4 با tokens استاندارد و حرفه‌ای
-
-**صفحات و ویژگی‌ها:**
-- Home (صفحه اصلی)
-- About Us (درباره ما)
-- List (فهرست اقلام)
-- Product Detail (جزئیات محصول)
-- Admin Panel (مدیریت محتوا و سفارشات)
-
-**کیفیت کد:**
-- Clean Code اولویت اول
-- Performance Optimization
-- بدون Bug و استاندارد فروش
-- Rendering Strategy: SSG، ISR، CSR (هر کدام برای صفحه مناسب)
-- کد باید مرجع‌دار، مستند‌شده و قابل نگهداری باشد
-
-۱. درگاه پرداخت و سفارش‌گیری: این Boilerplate فعلا در فاز mvp فقط یک منوی دیجیتال (Digital Menu) برای مشاهده در کافه است، اما در آینده شامل سیستم سبد خرید و اتصال به درگاه پرداخت آنلاین (مانند زرین‌پال و…) برای سفارشات بیرون‌بر/درون‌کافه‌ای نیز می‌شود پس باید پروژه توسعه پذیر باشه.
-
-۲. سطوح دسترسی (RBAC): برای پنل ادمین، در فاز mvp یک نقش واحد (Admin) در نظر بگیر اما بعدا سیستم به نقش‌های متفاوتی (مانند SuperAdmin برای مالک، Manager برای مدیر کافه و Staff برای گارسون) نیاز دارد.
-
-۳. تایپوگرافی: فونت وزیر
-
-۴. طراحی دیتابیس (Prisma Schema) برای آینده:
-با توجه به اینکه فاز فعلی یک MVP (منوی دیجیتال) است، اما در آینده سیستم سفارش‌گیری، سبد خرید، درگاه پرداخت و سطوح دسترسی (RBAC) پیشرفته به آن اضافه خواهد شد؛ باید مدل‌های (Models) مربوط به Order، Cart و Role از همین ابتدا به صورت مدل‌های پایه‌ای در دیتابیس طراحی شوند (تا زیرساخت کاملاً آماده باشد)
-
-۵. نیازی به لاگین با شبکه های اجتماعی و otp نیست  فقط لاگین با ایمیل/شماره موبایل و رمز
-
-۶. فیلدهای اختصاصی درگاه‌های ایرانی (مانند authority و refId و statusهای خاص شاپرک) از همین الان در Prisma Schema مدل Order و Payment لحاظ شوند.
-
-۷. خودت بهترین نمونه های موفق رو پیدا کن و در فرایند ریسرچ بررسی و بنچمارک کن.
-
-
-## خروجی مورد انتظار:
-
-**اول: Roadmap جامع و حرفه‌ای به زبان فارسی** که شامل:
-- تمام فازها به تفصیل
-- هر فاز شامل tasks مشخص
-- dependency بین‌تاسک‌ها
-- ملزومات فنی هر فاز
-- Risk و mitigation strategies
-
-**دوم: PRD (Product Requirements Document) کامل به زبان فارسی:**
-- User Personas و Use Cases
-- Feature Breakdown
-- Technical Specifications
-- UI/UX Requirements
-- Database Schema (نمودار ERD)
-- API Endpoints
-- Authentication & Authorization Flow
-- Performance Requirements
-
-**سوم: در هر مرحله زمانی که شروع بشه:**
-- کد کامل، دقیق و بدون‌باگ
-- فایل‌های كامپليت (components، layouts، pages، utils، etc.)
-- Configuration Files
-- Database Migrations
-- مستندات و comments در کد
-
-## قیودات و اولویت‌ها:
-
-✓ پروژه **Premium و Sale-Ready** باید باشد  
-✓ تمام کامپوننت‌ها **استاندارد Global Level**  
-✓ **Clean Code و Performance** بالای همه چیز  
-✓ بدون Bug، کامل و دقیق  
-✓ Rendering Strategy بهینه برای هر صفحه  
-✓ Design System حرفه‌ای و extensible  
-✓ Accessibility و Responsive Design  
-✓ SEO Optimized  
-
-## نحوه کار:
-
-1. **ابتدا** یک Roadmap جامع و Professional بساز (تمام فازها و تسک‌ها مشخص) به زبان فارسی
-2. **سپس** PRD کامل و دقیق به زبان فارسی
-3. **بعد از تأیید** هر فاز را **قدم‌به‌قدم** و **تفصیلی** پیاده‌سازی کن
-4. **هر کد** کامل، tested و production-ready باشد
-5. **عجله نکن** — بهتر است دقیق باشی
-
-**بیا شروع کنیم: ابتدا Roadmap جامع و PRD کامل را بساز.**
-**عجله نکن: دقیق بودن از سرعت مهم‌تر است.**
-بدون هیچ سوالی ریسرچ رو خیلی حرفه ای دقیق و کامل شروع کن.

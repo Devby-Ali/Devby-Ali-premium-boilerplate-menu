@@ -1,18 +1,20 @@
+// proxy.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { decodeSession, SESSION_COOKIE_NAME } from "@/lib/auth";
 
-const SESSION_COOKIE_NAME = "pm_session";
-
-export function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
   const isLoginRoute = pathname === "/admin/login";
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const isAuthenticated = Boolean(
-    sessionCookie && sessionCookie.trim().length > 0,
-  );
 
-  if (isAdminRoute && !isLoginRoute && !isAuthenticated) {
+  if (!isAdminRoute) return NextResponse.next();
+
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const session = await decodeSession(sessionCookie);
+  const isAuthenticated = Boolean(session);
+
+  if (!isLoginRoute && !isAuthenticated) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/admin/login";
     loginUrl.searchParams.set("next", pathname);

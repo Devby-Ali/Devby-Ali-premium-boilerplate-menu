@@ -3,6 +3,13 @@
 :root {
   --background: #f8f4eb;
   --foreground: #221c16;
+  --card: #ffffff;
+  --card-foreground: #221c16;
+  --muted: #f0ebe0;
+  --muted-foreground: #6b6358;
+  --border: #e7dfd1;
+  --input: #e7dfd1;
+  --ring: #2f6b4f;
   --brand-emerald: #2f6b4f;
   --brand-berry: #8b233d;
   --brand-cream: #f4e3b2;
@@ -11,12 +18,29 @@
 .dark {
   --background: #12110d;
   --foreground: #f7efe2;
+  --card: #1a1915;
+  --card-foreground: #f7efe2;
+  --muted: #24211b;
+  --muted-foreground: #b9b0a2;
+  --border: #2d2922;
+  --input: #2d2922;
+  --ring: #4f9b74;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Vazirmatn", "Segoe UI", Arial, sans-serif;
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand-emerald: var(--brand-emerald);
+  --color-brand-berry: var(--brand-berry);
+  --color-brand-cream: var(--brand-cream);
+  --font-sans: "Vazirmatn", "Segoe UI", Tahoma, Arial, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, monospace;
 }
 
