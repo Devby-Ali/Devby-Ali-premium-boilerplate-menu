@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, type AxiosResponse } from "axios";
 
 // ------------------------------------------------------------------
 //  Base Axios Instance
@@ -47,3 +47,33 @@ http.interceptors.response.use(
 );
 
 export default http;
+
+// ------------------------------------------------------------------
+//  Typed helpers – کمک به Type Safety در فراخوانی‌های کلاینت
+// ------------------------------------------------------------------
+//  توجه: Interceptor بالا بدنهٔ پاسخ را از قبل Unwrap می‌کند (به `data`
+//  در قالب ApiResponse یا کل بدنه در سایر موارد)، اما تایپ axios همچنان
+//  `AxiosResponse<T>` را اعلام می‌کند. این توابع صرفاً برای هم‌راستا کردن
+//  تایپ TypeScript با رفتار واقعی زمان اجرا استفاده می‌شوند.
+
+/**
+ * برای درخواست‌هایی که پاسخ سرور به فرمت استاندارد `ApiResponse<T>`
+ * (یعنی `{ data: T }`) است و توسط Interceptor به مقدار `data` واقعی
+ * Unwrap می‌شود.
+ */
+export async function getApiData<T>(
+  request: Promise<AxiosResponse<T>>
+): Promise<T> {
+  return (await request) as unknown as T;
+}
+
+/**
+ * برای درخواست‌هایی که بدنهٔ پاسخ سرور شکل دلخواه خودش را دارد
+ * (مثلاً `{ message, user }`) و به‌صورت کامل توسط Interceptor
+ * بازگردانده می‌شود.
+ */
+export async function getApiPayload<T>(
+  request: Promise<AxiosResponse<T>>
+): Promise<T> {
+  return (await request) as unknown as T;
+}

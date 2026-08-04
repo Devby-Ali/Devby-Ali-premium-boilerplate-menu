@@ -2,7 +2,6 @@
 
 import * as React from "react";
 
-import { AdminShell } from "@/app/admin/components/admin-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,8 +29,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <AdminShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <section className="rounded-4xl border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
           <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
             Brand Settings
@@ -126,7 +124,6 @@ export default function AdminSettingsPage() {
             </CardContent>
           </Card>
         </form>
-      </div>
-    </AdminShell>
+    </div>
   );
 }

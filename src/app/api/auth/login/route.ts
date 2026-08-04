@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // تطبیق پسورد هش‌شده
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
       return Response.json({ error: "ایمیل یا رمز عبور اشتباه است." }, { status: 401 });

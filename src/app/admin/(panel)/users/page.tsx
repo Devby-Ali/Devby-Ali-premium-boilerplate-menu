@@ -1,4 +1,3 @@
-import { AdminShell } from "@/app/admin/components/admin-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const users = [
@@ -9,8 +8,7 @@ const users = [
 
 export default function AdminUsersPage() {
   return (
-    <AdminShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <section className="rounded-4xl border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
           <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
             User Access
@@ -33,7 +31,6 @@ export default function AdminUsersPage() {
             </Card>
           ))}
         </section>
-      </div>
-    </AdminShell>
+    </div>
   );
 }
