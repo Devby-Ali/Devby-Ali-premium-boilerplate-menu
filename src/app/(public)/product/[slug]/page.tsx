@@ -1,19 +1,39 @@
 import * as React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatPrice, menuItems } from "@/data/menu";
+import { formatPrice, getMenuItemBySlug, menuItems } from "@/data/menu";
 
 export function generateStaticParams() {
   return menuItems.map((item) => ({ slug: item.slug }));
 }
 
-export const metadata = {
-  title: "جزئیات محصول | Premium Menu",
-  description: "جزئیات آیتم‌های منو با اطلاعات برند و قیمت",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const resolvedParams = await params;
+  const product = getMenuItemBySlug(resolvedParams.slug);
+
+  if (!product) {
+    return {
+      title: "محصول یافت نشد | Premium Menu",
+      description: "محصولی با این شناسه در منوی دیجیتال موجود نیست.",
+    };
+  }
+
+  return {
+    title: `${product.title} | Premium Menu`,
+    description: product.description,
+    alternates: {
+      canonical: `/product/${product.slug}`,
+    },
+  };
+}
 
 export default function ProductPage({
   params,
@@ -21,7 +41,7 @@ export default function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const resolvedParams = React.use(params);
-  const product = menuItems.find((item) => item.slug === resolvedParams.slug);
+  const product = getMenuItemBySlug(resolvedParams.slug);
 
   if (!product) {
     notFound();

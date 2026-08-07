@@ -4,7 +4,7 @@ import Link from "next/link";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatPrice, menuItems } from "@/data/menu";
+import { formatPrice, getFeaturedMenuItems } from "@/data/menu";
 
 export const metadata: Metadata = {
   title: "Premium Menu Boilerplate | منوی دیجیتال مدرن",
@@ -22,7 +22,7 @@ const highlights = [
 ];
 
 export default function Home() {
-  const featuredItems = menuItems.filter((item) => item.featured);
+  const featuredItems = getFeaturedMenuItems();
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-10 px-6 pb-16 lg:px-8">

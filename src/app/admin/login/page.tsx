@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import http from "@/lib/http";
 import { useAuthStore } from "@/store/auth-store";
+import type { UserSession } from "@/types";
 
 const loginSchema = z.object({
   email: z.string().email("ایمیل معتبر وارد کنید"),
@@ -32,8 +33,13 @@ export default function AdminLoginPage() {
     setSubmitError(null);
 
     try {
-      const response = await http.post("/auth/login", values);
-      setUser(response.data.user);
+      const response = await http.post<{
+        message?: string;
+        user?: UserSession;
+      }>("/auth/login", values);
+      const payload = response as { user?: UserSession } | null;
+      const user = payload?.user ?? null;
+      setUser(user ?? null);
       router.replace("/admin");
     } catch {
       setSubmitError("ایمیل یا رمز عبور نادرست است. لطفاً دوباره تلاش کنید.");

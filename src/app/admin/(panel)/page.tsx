@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { ArrowUpRight, Sparkles, ShoppingBag, Users2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPrice, menuItems } from "@/data/menu";
 
 const stats = [
-  { label: "آیتم‌های منو", value: "24" },
-  { label: "دسته‌بندی‌ها", value: "6" },
+  { label: "آیتم‌های منو", value: String(menuItems.length) },
+  { label: "دسته‌بندی‌های فعال", value: "4" },
   { label: "سفارش‌های امروز", value: "11" },
 ];
 
@@ -38,9 +40,11 @@ export const metadata = {
 };
 
 export default function AdminPage() {
+  const featuredItems = menuItems.filter((item) => item.featured).slice(0, 2);
+
   return (
     <div className="space-y-6">
-      <section className="rounded-4xl border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80 lg:p-10">
+      <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80 lg:p-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
@@ -49,6 +53,10 @@ export default function AdminPage() {
             <h1 className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">
               داشبورد مدیریت منو
             </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600 dark:text-stone-400">
+              پنل شما در حال حاضر برای مدیریت محتوای برند، منو و تجربه مشتری
+              آماده است.
+            </p>
           </div>
           <Button asChild>
             <Link href="/">بازگشت به سایت</Link>
@@ -77,10 +85,12 @@ export default function AdminPage() {
             <CardTitle>امکانات پنل</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-7 text-stone-600 dark:text-stone-400">
-            <p>• مدیریت دسته‌بندی‌ها و آیتم‌ها</p>
-            <p>• آپلود و مدیریت تصاویر</p>
-            <p>• تنظیمات برند و متادیتا</p>
-            <p>• زیرساخت آماده برای سفارش و پرداخت</p>
+            <p>• مدیریت دسته‌بندی‌ها و آیتم‌های منو با فرم‌های سریع</p>
+            <p>• نمایش وضعیت سفارش‌ها و دسترسی‌های کاربر</p>
+            <p>• تنظیمات برند و متادیتا برای تجربه حرفه‌ای‌تر</p>
+            <p>
+              • زیرساخت آماده برای سفارش، پرداخت و کنترل دسترسی در مرحله بعد
+            </p>
           </CardContent>
         </Card>
 
@@ -89,9 +99,57 @@ export default function AdminPage() {
             <CardTitle>وضعیت احراز هویت</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-7 text-stone-600 dark:text-stone-400">
-            <p>حالت فعلی: آماده برای ورود با ایمیل/شماره همراه و رمز عبور</p>
+            <p>حالت فعلی: آماده برای ورود با ایمیل و رمز عبور</p>
             <p>نقش MVP: Admin</p>
             <p>آماده برای توسعه به RBAC حرفه‌ای در مراحل بعدی</p>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>پیشنهادهای امروز</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {featuredItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50"
+              >
+                <div>
+                  <p className="font-semibold text-stone-900 dark:text-stone-100">
+                    {item.title}
+                  </p>
+                  <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                    {item.description}
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                  {formatPrice(item.price)}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>اقدامات سریع</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm leading-7 text-stone-600 dark:text-stone-400">
+            <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50">
+              <Sparkles className="h-4 w-4 text-emerald-600" />
+              <span>به‌روزرسانی آیتم‌های ویژه منو</span>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50">
+              <ShoppingBag className="h-4 w-4 text-emerald-600" />
+              <span>بررسی سفارش‌های در انتظار</span>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50">
+              <Users2 className="h-4 w-4 text-emerald-600" />
+              <span>مشاهده دسترسی‌های کاربر</span>
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -100,8 +158,9 @@ export default function AdminPage() {
         {quickLinks.map((link) => (
           <Link key={link.href} href={link.href} className="block">
             <Card className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <CardTitle>{link.title}</CardTitle>
+                <ArrowUpRight className="h-4 w-4 text-stone-500" />
               </CardHeader>
               <CardContent className="text-sm leading-7 text-stone-600 dark:text-stone-400">
                 {link.description}

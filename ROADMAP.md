@@ -147,7 +147,6 @@ src/
 ---
 
 ### فاز ۰ — Discovery & Foundation
-**مدت:** هفته ۱  
 **هدف:** تثبیت scope، معماری، scaffold و design system پایه
 
 #### Tasks
@@ -192,7 +191,6 @@ src/
 ---
 
 ### فاز ۱ — Core Platform Foundation
-**مدت:** هفته ۲–۳  
 **هدف:** زیرساخت فنی مشترک برای public و admin
 
 #### Tasks
@@ -240,7 +238,6 @@ src/
 ---
 
 ### فاز ۲ — Public Experience (منوی دیجیتال)
-**مدت:** هفته ۴–۵  
 **هدف:** صفحات عمومی Premium با SEO و performance
 
 #### Tasks
@@ -287,7 +284,6 @@ src/
 ---
 
 ### فاز ۳ — Admin Panel MVP
-**مدت:** هفته ۶–۷  
 **هدف:** پنل مدیریت محتوا برای Admin
 
 #### Tasks
@@ -333,7 +329,6 @@ src/
 ---
 
 ### فاز ۴ — Commerce Layer Preparation
-**مدت:** هفته ۸–۹  
 **هدف:** زیرساخت آماده برای Cart, Order, Payment (بدون UI کامل)
 
 #### Tasks
@@ -390,7 +385,6 @@ Order/Payment shared fields:
 ---
 
 ### فاز ۵ — Quality, Security & Launch Readiness
-**مدت:** هفته ۱۰  
 **هدف:** Production-ready deployment
 
 #### Tasks

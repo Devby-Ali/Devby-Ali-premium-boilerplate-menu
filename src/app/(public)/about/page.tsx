@@ -4,9 +4,15 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = {
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
   title: "درباره ما | Premium Menu",
-  description: "معرفی برند و فلسفه منوی دیجیتال مدرن",
+  description:
+    "معرفی برند و فلسفه منوی دیجیتال مدرن با تجربه کاربری حرفه‌ای و آماده برای توسعه آینده",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 const pillars = [

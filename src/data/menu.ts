@@ -12,6 +12,8 @@ export interface MenuItemData {
   story: string;
 }
 
+export type MenuCategorySlug = (typeof menuCategories)[number]["slug"];
+
 export const menuCategories = [
   { slug: "all", label: "همه" },
   { slug: "coffee", label: "کافی‌شاپ" },
@@ -104,4 +106,20 @@ export const menuItems: MenuItemData[] = [
 
 export function formatPrice(value: number) {
   return `${value.toLocaleString("fa-IR")} تومان`;
+}
+
+export function getMenuItemBySlug(slug: string) {
+  return menuItems.find((item) => item.slug === slug) ?? null;
+}
+
+export function getFeaturedMenuItems() {
+  return menuItems.filter((item) => item.featured);
+}
+
+export function getMenuItemsByCategory(category: MenuCategorySlug | string) {
+  if (category === "all") {
+    return menuItems;
+  }
+
+  return menuItems.filter((item) => item.category === category);
 }
