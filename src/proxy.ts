@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+﻿import { NextResponse, type NextRequest } from "next/server";
 
 import { decodeSession, SESSION_COOKIE_NAME } from "@/lib/auth";
 
@@ -6,7 +6,7 @@ export const config = {
   matcher: ["/admin/:path*"],
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/admin/login") {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import * as React from "react";
@@ -7,17 +7,82 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { formatPrice, menuCategories, menuItems } from "@/data/menu";
+
+interface MenuItemData {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  price: number;
+  category: string;
+  categoryName: string;
+  badge?: string;
+  featured: boolean;
+  prepTime: number;
+  ingredients: string[];
+  story: string;
+}
+
+interface CategoryData {
+  slug: string;
+  name: string;
+  count?: number;
+}
+
+const ALL_CATEGORY = { slug: "all", label: "همه" };
+
+const DEFAULT_CATEGORIES: { slug: string; label: string }[] = [
+  ALL_CATEGORY,
+  { slug: "coffee", label: "کافی‌شاپ" },
+  { slug: "dessert", label: "دسر" },
+  { slug: "savory", label: "اشنایی" },
+  { slug: "signature", label: "ویژه" },
+];
+
+function formatPrice(value: number) {
+  return `${value.toLocaleString("fa-IR")} تومان`;
+}
 
 export function ListPageClient() {
-  const [activeCategory, setActiveCategory] =
-    React.useState<(typeof menuCategories)[number]["slug"]>("all");
+  const [activeCategory, setActiveCategory] = React.useState("all");
   const [query, setQuery] = React.useState("");
+  const [items, setItems] = React.useState<MenuItemData[]>([]);
+  const [categories, setCategories] =
+    React.useState<{ slug: string; label: string }[]>(DEFAULT_CATEGORIES);
+  const [loading, setLoading] = React.useState(true);
+
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/menu");
+      if (res.ok) {
+        const payload = await res.json();
+        if (payload?.data) {
+          setItems(payload.data as MenuItemData[]);
+        }
+        if (payload?.categories) {
+          const fetched = payload.categories as CategoryData[];
+          setCategories([
+            ALL_CATEGORY,
+            ...fetched.map((c) => ({ slug: c.slug, label: c.name })),
+          ]);
+        }
+      }
+    } catch {
+      // silent fail — show empty
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const filteredItems = React.useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return menuItems.filter((item) => {
+    return items.filter((item) => {
       const matchesCategory =
         activeCategory === "all" || item.category === activeCategory;
       const matchesQuery =
@@ -29,7 +94,7 @@ export function ListPageClient() {
 
       return matchesCategory && matchesQuery;
     });
-  }, [activeCategory, query]);
+  }, [activeCategory, query, items]);
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-12 lg:px-8">
@@ -53,7 +118,7 @@ export function ListPageClient() {
         </div>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          {menuCategories.map((category) => (
+          {categories.map((category) => (
             <button
               key={category.slug}
               type="button"
@@ -70,6 +135,12 @@ export function ListPageClient() {
         </div>
       </section>
 
+      {loading ? (
+        <p className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400">
+          در حال بارگذاری منو...
+        </p>
+      ) : null}
+
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredItems.map((item) => (
           <Card key={item.slug} className="overflow-hidden">
@@ -78,12 +149,12 @@ export function ListPageClient() {
                 <div>
                   <CardTitle>{item.title}</CardTitle>
                   <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-                    {item.category}
+                    {item.categoryName || item.category}
                   </p>
                 </div>
-                {item.badge ? (
+                {item.featured ? (
                   <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
-                    {item.badge}
+                    ویژه
                   </span>
                 ) : null}
               </div>
@@ -108,9 +179,11 @@ export function ListPageClient() {
         ))}
       </section>
 
-      {filteredItems.length === 0 ? (
+      {!loading && filteredItems.length === 0 ? (
         <Card className="p-8 text-center text-sm text-stone-600 dark:text-stone-400">
-          هیچ آیتمی با این فیلتر پیدا نشد.
+          {query.trim()
+            ? "هیچ آیتمی با این جستجو پیدا نشد."
+            : "هنوز آیتمی در منو ثبت نشده است."}
         </Card>
       ) : null}
     </main>

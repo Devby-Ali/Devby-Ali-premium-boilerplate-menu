@@ -1,33 +1,46 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth-store";
-import http from "@/lib/http";
 
 export function AuthHydrator() {
   const { setUser, markHydrated, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    // فقط اگر کاربر قبلاً لاگین نکرده باشد (در استور) تلاش می‌کنیم
-    if (!isAuthenticated) {
-      http
-        .get("/auth/me")
-        .then((data: any) => {
-          // API پاسخ { data: UserSession } را برمی‌گرداند
-          setUser(data as any);
-        })
-        .catch(() => {
-          // اگر 401 یا خطا، یعنی لاگین نیست؛ session خالی می‌شود
-          setUser(null);
-        })
-        .finally(() => {
-          markHydrated();
-        });
-    } else {
-      // اگر قبلاً در استور user وجود دارد (مثلاً از localStorage هیدریت شده)، فقط hydrated کنیم
+    if (isAuthenticated) {
       markHydrated();
+      return;
     }
+
+    const hydratorAbort = new AbortController();
+    let cancelled = false;
+
+    fetch("/api/auth/me", {
+      credentials: "include",
+      signal: hydratorAbort.signal,
+    })
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+        const payload = await res.json();
+        setUser(payload?.data ?? null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) markHydrated();
+      });
+
+    return () => {
+      cancelled = true;
+      hydratorAbort.abort();
+    };
   }, [isAuthenticated, setUser, markHydrated]);
 
-  return null; // هیچ UI ای رندر نمی‌کند
+  return null;
 }

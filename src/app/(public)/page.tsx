@@ -1,10 +1,16 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatPrice, getFeaturedMenuItems } from "@/data/menu";
+import { getMenuItems } from "@/lib/menu-service";
+
+export const revalidate = 60;
+
+export function formatPrice(value: number) {
+  return `${value.toLocaleString("fa-IR")} تومان`;
+}
 
 export const metadata: Metadata = {
   title: "Premium Menu Boilerplate | منوی دیجیتال مدرن",
@@ -21,8 +27,14 @@ const highlights = [
   "پایه آماده برای سفارش، پرداخت و پنل ادمین در آینده",
 ];
 
-export default function Home() {
-  const featuredItems = getFeaturedMenuItems();
+export default async function Home() {
+  let featuredItems: any[] = [];
+  try {
+    const items = await getMenuItems();
+    featuredItems = items.filter((item) => item.isFeatured).slice(0, 2);
+  } catch {
+    // اگر سرویس در دسترس نبود، خالی نمایش بده
+  }
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-10 px-6 pb-16 lg:px-8">
@@ -54,7 +66,7 @@ export default function Home() {
 
           <div className="rounded-[1.5rem] border border-stone-200 bg-[radial-gradient(circle_at_top,_rgba(47,107,79,0.18),_transparent_60%)] p-6 dark:border-stone-800">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-stone-500 dark:text-stone-400">
-              ویژگى‌های فاز ۲
+              ویژگی‌های فاز ۲
             </p>
             <ul className="mt-5 space-y-3 text-sm text-stone-700 dark:text-stone-300">
               {highlights.map((item) => (
@@ -74,29 +86,33 @@ export default function Home() {
             <CardTitle>پیشنهادهای ویژه</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {featuredItems.map((item) => (
-              <div
-                key={item.slug}
-                className="flex items-center justify-between gap-4 rounded-[1rem] border border-stone-200 px-4 py-3 dark:border-stone-800"
-              >
-                <div>
-                  <p className="font-semibold text-stone-900 dark:text-stone-100">
-                    {item.title}
-                  </p>
-                  <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-                    {item.description}
-                  </p>
+            {featuredItems.length > 0 ? (
+              featuredItems.map((item) => (
+                <div
+                  key={item.slug}
+                  className="flex items-center justify-between gap-4 rounded-[1rem] border border-stone-200 px-4 py-3 dark:border-stone-800"
+                >
+                  <div>
+                    <p className="font-semibold text-stone-900 dark:text-stone-100">
+                      {item.name}
+                    </p>
+                    <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+                      {item.description}
+                    </p>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                      {formatPrice(item.price)}
+                    </p>
+                    <Button asChild size="sm" variant="outline" className="mt-2">
+                      <Link href={`/product/${item.slug}`}>جزئیات</Link>
+                    </Button>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                    {formatPrice(item.price)}
-                  </p>
-                  <Button asChild size="sm" variant="outline" className="mt-2">
-                    <Link href={`/product/${item.slug}`}>جزئیات</Link>
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-stone-500">هیچ آیتم ویژه‌ای ثبت نشده است.</p>
+            )}
           </CardContent>
         </Card>
 

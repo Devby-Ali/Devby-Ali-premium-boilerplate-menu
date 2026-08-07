@@ -1,14 +1,21 @@
-import * as React from "react";
+﻿import * as React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatPrice, getMenuItemBySlug, menuItems } from "@/data/menu";
+import { getMenuItemBySlug as getMenuItemBySlugFromService, getAllMenuItems } from "@/lib/menu-service";
 
-export function generateStaticParams() {
-  return menuItems.map((item) => ({ slug: item.slug }));
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  const items = await getAllMenuItems();
+  return items.filter((i) => i.isActive).map((item) => ({ slug: item.slug }));
+}
+
+function formatPrice(value: number) {
+  return `${value.toLocaleString("fa-IR")} تومان`;
 }
 
 export async function generateMetadata({
@@ -16,8 +23,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const resolvedParams = await params;
-  const product = getMenuItemBySlug(resolvedParams.slug);
+  const { slug } = await params;
+  const product = await getMenuItemBySlugFromService(slug);
 
   if (!product) {
     return {
@@ -27,7 +34,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${product.title} | Premium Menu`,
+    title: `${product.name} | Premium Menu`,
     description: product.description,
     alternates: {
       canonical: `/product/${product.slug}`,
@@ -35,13 +42,13 @@ export async function generateMetadata({
   };
 }
 
-export default function ProductPage({
+export default async function ProductPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const resolvedParams = React.use(params);
-  const product = getMenuItemBySlug(resolvedParams.slug);
+  const { slug } = await params;
+  const product = await getMenuItemBySlugFromService(slug);
 
   if (!product) {
     notFound();
@@ -56,7 +63,7 @@ export default function ProductPage({
               <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
                 Product Detail
               </p>
-              <CardTitle className="mt-2 text-3xl">{product.title}</CardTitle>
+              <CardTitle className="mt-2 text-3xl">{product.name}</CardTitle>
             </div>
             <Button asChild variant="outline">
               <Link href="/list">بازگشت به فهرست</Link>
@@ -81,12 +88,15 @@ export default function ProductPage({
                 مواد تشکیل‌دهنده
               </h3>
               <ul className="mt-4 space-y-3 text-sm leading-7 text-stone-600 dark:text-stone-400">
-                {product.ingredients.map((ingredient) => (
+                {(product.tags ?? []).map((ingredient) => (
                   <li key={ingredient} className="flex items-start gap-3">
                     <span className="mt-2 h-2 w-2 rounded-full bg-emerald-600" />
                     <span>{ingredient}</span>
                   </li>
                 ))}
+                {(product.tags ?? []).length === 0 && (
+                  <li className="text-stone-400">اطلاعاتی ثبت نشده است.</li>
+                )}
               </ul>
             </div>
             <div className="rounded-[1.25rem] border border-stone-200 p-6 dark:border-stone-800">
@@ -94,14 +104,16 @@ export default function ProductPage({
                 داستان محصول
               </h3>
               <p className="mt-4 text-sm leading-7 text-stone-600 dark:text-stone-400">
-                {product.story}
+                {product.description}
               </p>
               <div className="mt-6 flex flex-wrap gap-3 text-sm text-stone-500 dark:text-stone-400">
+                {product.preparationTime != null && (
+                  <span className="rounded-full bg-stone-100 px-3 py-1 dark:bg-stone-800">
+                    زمان آماده‌سازی: {product.preparationTime} دقیقه
+                  </span>
+                )}
                 <span className="rounded-full bg-stone-100 px-3 py-1 dark:bg-stone-800">
-                  زمان آماده‌سازی: {product.prepTime} دقیقه
-                </span>
-                <span className="rounded-full bg-stone-100 px-3 py-1 dark:bg-stone-800">
-                  دسته: {product.category}
+                  دسته: {product.category?.name ?? product.category?.slug ?? "نامشخص"}
                 </span>
               </div>
             </div>

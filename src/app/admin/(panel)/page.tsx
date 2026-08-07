@@ -1,15 +1,31 @@
+﻿"use client";
+
 import Link from "next/link";
+import * as React from "react";
 import { ArrowUpRight, Sparkles, ShoppingBag, Users2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatPrice, menuItems } from "@/data/menu";
 
-const stats = [
-  { label: "آیتم‌های منو", value: String(menuItems.length) },
-  { label: "دسته‌بندی‌های فعال", value: "4" },
-  { label: "سفارش‌های امروز", value: "11" },
-];
+interface MenuItemData {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  featured: boolean;
+}
+
+interface OrderStats {
+  pending: number;
+  processing: number;
+  ready: number;
+  delivered: number;
+  cancelled: number;
+}
+
+function formatPrice(value: number) {
+  return `\u200E${value.toLocaleString("fa-IR")} تومان`;
+}
 
 const quickLinks = [
   {
@@ -34,13 +50,59 @@ const quickLinks = [
   },
 ];
 
-export const metadata = {
-  title: "پنل ادمین | Premium Menu",
-  description: "داشبورد مدیریت محتوای منو و ساختار آینده‌نگر",
-};
-
 export default function AdminPage() {
-  const featuredItems = menuItems.filter((item) => item.featured).slice(0, 2);
+  const [itemCount, setItemCount] = React.useState(0);
+  const [catCount, setCatCount] = React.useState(0);
+  const [orderCount, setOrderCount] = React.useState(0);
+  const [featuredItems, setFeaturedItems] = React.useState<MenuItemData[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const [menuRes, orderStatsRes] = await Promise.all([
+          fetch("/api/admin/menu", { credentials: "include" }),
+          fetch("/api/admin/orders?stats=true", { credentials: "include" }),
+        ]);
+
+        if (menuRes.ok) {
+          const payload = await menuRes.json();
+          if (payload?.data) {
+            const items = payload.data as MenuItemData[];
+            setItemCount(items.length);
+            setFeaturedItems(
+              items.filter((i: MenuItemData) => i.featured).slice(0, 2),
+            );
+          }
+          if (payload?.categories) {
+            setCatCount((payload.categories as any[]).length);
+          }
+        }
+
+        if (orderStatsRes.ok) {
+          const payload = await orderStatsRes.json();
+          if (payload?.data) {
+            const s = payload.data as OrderStats;
+            setOrderCount(
+              s.pending + s.processing + s.ready + s.delivered + s.cancelled,
+            );
+          }
+        }
+      } catch {
+        // silent fail — show zeros
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void load();
+  }, []);
+
+  const stats = [
+    { label: "آیتم‌های منو", value: String(itemCount) },
+    { label: "دسته‌بندی‌های فعال", value: String(catCount) },
+    { label: "کل سفارش‌ها", value: String(orderCount) },
+  ];
 
   return (
     <div className="space-y-6">
@@ -72,7 +134,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-semibold text-emerald-700 dark:text-emerald-400">
-                {stat.value}
+                {loading ? "..." : stat.value}
               </p>
             </CardContent>
           </Card>
@@ -112,24 +174,30 @@ export default function AdminPage() {
             <CardTitle>پیشنهادهای امروز</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {featuredItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50"
-              >
-                <div>
-                  <p className="font-semibold text-stone-900 dark:text-stone-100">
-                    {item.title}
-                  </p>
-                  <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-                    {item.description}
-                  </p>
+            {featuredItems.length > 0 ? (
+              featuredItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50"
+                >
+                  <div>
+                    <p className="font-semibold text-stone-900 dark:text-stone-100">
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                      {item.description}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                    {formatPrice(item.price)}
+                  </span>
                 </div>
-                <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                  {formatPrice(item.price)}
-                </span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-stone-500">
+                {loading ? "در حال بارگذاری..." : "هیچ آیتم ویژه‌ای یافت نشد."}
+              </p>
+            )}
           </CardContent>
         </Card>
 

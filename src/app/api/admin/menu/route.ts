@@ -1,23 +1,43 @@
-import { Prisma } from "@prisma/client";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { menuItems as fallbackMenuItems, type MenuItemData } from "@/data/menu";
-import { getPrismaClient } from "@/server/prisma";
+import {
+  getAllMenuItems,
+  createMenuItem,
+  updateMenuItem,
+  softDeleteMenuItem,
+  getCategoriesWithCount,
+  type CreateMenuItemInput,
+  type UpdateMenuItemInput,
+} from "@/lib/menu-service";
+import type { MenuItem } from "@/types";
 
-const menuItemSchema = z.object({
-  title: z.string().trim().min(1),
-  description: z.string().trim().min(1),
-  category: z.enum(["coffee", "dessert", "savory", "signature"]),
-  price: z.number().positive(),
-  prepTime: z.number().positive(),
+const CATEGORY_SLUGS = ["coffee", "dessert", "savory", "signature"] as const;
+
+const createMenuItemSchema = z.object({
+  title: z.string().trim().min(1, "عنوان الزامی است"),
+  description: z.string().trim().min(1, "توضیحات الزامی است"),
+  category: z.enum(CATEGORY_SLUGS, { message: "دسته‌بندی نامعتبر است" }),
+  price: z.number().positive("قیمت باید مثبت باشد"),
+  prepTime: z.number().positive("زمان آماده‌سازی باید مثبت باشد"),
+  featured: z.boolean().optional().default(false),
+  ingredients: z.array(z.string()).optional().default([]),
+});
+
+const updateMenuItemSchema = z.object({
+  id: z.string().trim().min(1, "شناسه الزامی است"),
+  title: z.string().trim().min(1).optional(),
+  description: z.string().trim().min(1).optional(),
+  category: z.enum(CATEGORY_SLUGS).optional(),
+  price: z.number().positive().optional(),
+  prepTime: z.number().positive().optional(),
   featured: z.boolean().optional(),
   ingredients: z.array(z.string()).optional(),
 });
 
-const updateMenuItemSchema = menuItemSchema
-  .partial()
-  .extend({ id: z.string().trim().min(1) });
+const deleteMenuItemSchema = z.object({
+  id: z.string().trim().min(1, "شناسه الزامی است"),
+});
 
 function slugify(value: string) {
   return value
@@ -28,25 +48,14 @@ function slugify(value: string) {
     .replace(/-+/g, "-");
 }
 
-function toAdminMenuItem(item: {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  price: number;
-  isFeatured: boolean;
-  isActive: boolean;
-  preparationTime: number | null;
-  tags: string[];
-  category?: { slug: string | null; name: string | null } | null;
-}): MenuItemData {
+function toAdminMenuItem(item: MenuItem) {
   return {
     id: item.id,
     title: item.name,
     slug: item.slug,
     description: item.description ?? "",
     price: item.price,
-    category: (item.category?.slug as MenuItemData["category"]) ?? "coffee",
+    category: (item.category?.slug ?? "coffee") as string,
     badge: item.isFeatured ? "ویژه" : undefined,
     featured: item.isFeatured,
     prepTime: item.preparationTime ?? 0,
@@ -55,65 +64,33 @@ function toAdminMenuItem(item: {
   };
 }
 
-async function ensureCategory(
-  prisma: ReturnType<typeof getPrismaClient>,
-  category: MenuItemData["category"],
-) {
-  const slug = category;
-  const labelMap: Record<MenuItemData["category"], string> = {
-    coffee: "کافی‌شاپ",
-    dessert: "دسر",
-    savory: "اشنایی",
-    signature: "ویژه",
-  };
-
-  return prisma.menuCategory.upsert({
-    where: { slug },
-    update: {},
-    create: {
-      name: labelMap[category],
-      slug,
-      description: `${labelMap[category]} از منوی دیجیتال`,
-    },
-  });
-}
-
-async function writeAuditLog(action: string, details: Record<string, unknown>) {
-  try {
-    const prisma = getPrismaClient();
-    await prisma.auditLog.create({
-      data: {
-        action,
-        details: details as Prisma.InputJsonValue,
-      },
-    });
-  } catch {
-    // Ignore audit log failures to avoid breaking the main flow.
-  }
-}
-
 export async function GET() {
   try {
-    const prisma = getPrismaClient();
-    const items = await prisma.menuItem.findMany({
-      where: { isActive: true },
-      include: { category: true },
-      orderBy: [{ createdAt: "desc" }],
-    });
+    const [items, categories] = await Promise.all([
+      getAllMenuItems(),
+      getCategoriesWithCount(),
+    ]);
 
-    return Response.json({ data: items.map(toAdminMenuItem) });
-  } catch {
-    return Response.json({ data: fallbackMenuItems });
+    return NextResponse.json({
+      data: items.map(toAdminMenuItem),
+      categories: categories.map((c) => ({ slug: c.slug, name: c.name, count: c.count })),
+    });
+  } catch (error) {
+    console.error("[ADMIN MENU GET ERROR]", error);
+    return NextResponse.json(
+      { error: "دریافت آیتم‌های منو با خطا مواجه شد." },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const parsed = menuItemSchema.safeParse(body);
+    const parsed = createMenuItemSchema.safeParse(body);
 
     if (!parsed.success) {
-      return Response.json(
+      return NextResponse.json(
         {
           error: "اطلاعات ورودی نامعتبر است.",
           details: parsed.error.flatten().fieldErrors,
@@ -122,34 +99,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prisma = getPrismaClient();
-    const category = await ensureCategory(prisma, parsed.data.category);
     const slug = slugify(parsed.data.title);
 
-    const item = await prisma.menuItem.create({
-      data: {
-        name: parsed.data.title,
-        slug,
-        description: parsed.data.description,
-        price: parsed.data.price,
-        categoryId: category.id,
-        isFeatured: parsed.data.featured ?? false,
-        isActive: true,
-        preparationTime: parsed.data.prepTime,
-        tags: parsed.data.ingredients ?? [],
-      },
-      include: { category: true },
-    });
+    const input: CreateMenuItemInput = {
+      name: parsed.data.title,
+      slug,
+      description: parsed.data.description,
+      price: parsed.data.price,
+      categorySlug: parsed.data.category,
+      isFeatured: parsed.data.featured,
+      preparationTime: parsed.data.prepTime,
+      tags: parsed.data.ingredients,
+    };
 
-    await writeAuditLog("menu.created", {
-      title: parsed.data.title,
-      category: parsed.data.category,
-    });
+    const item = await createMenuItem(input);
 
-    return Response.json({ data: toAdminMenuItem(item) });
+    return NextResponse.json({
+      data: toAdminMenuItem(item),
+    });
   } catch (error) {
     console.error("[ADMIN MENU CREATE ERROR]", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "در حال حاضر امکان ذخیره آیتم منو وجود ندارد." },
       { status: 500 },
     );
@@ -162,7 +132,7 @@ export async function PATCH(request: NextRequest) {
     const parsed = updateMenuItemSchema.safeParse(body);
 
     if (!parsed.success) {
-      return Response.json(
+      return NextResponse.json(
         {
           error: "اطلاعات ورودی نامعتبر است.",
           details: parsed.error.flatten().fieldErrors,
@@ -171,38 +141,31 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const prisma = getPrismaClient();
-    const updateData: Record<string, unknown> = {};
-
-    if (parsed.data.title) updateData.name = parsed.data.title;
-    if (parsed.data.description)
-      updateData.description = parsed.data.description;
-    if (parsed.data.category) {
-      const category = await ensureCategory(prisma, parsed.data.category);
-      updateData.categoryId = category.id;
-    }
-    if (parsed.data.price) updateData.price = parsed.data.price;
-    if (parsed.data.prepTime) updateData.preparationTime = parsed.data.prepTime;
-    if (parsed.data.featured !== undefined)
-      updateData.isFeatured = parsed.data.featured;
-    if (parsed.data.ingredients) updateData.tags = parsed.data.ingredients;
+    const input: UpdateMenuItemInput = { id: parsed.data.id };
 
     if (parsed.data.title) {
-      updateData.slug = slugify(parsed.data.title);
+      input.name = parsed.data.title;
+      input.slug = slugify(parsed.data.title);
+    }
+    if (parsed.data.description !== undefined) input.description = parsed.data.description;
+    if (parsed.data.category !== undefined) input.categorySlug = parsed.data.category;
+    if (parsed.data.price !== undefined) input.price = parsed.data.price;
+    if (parsed.data.prepTime !== undefined) input.preparationTime = parsed.data.prepTime;
+    if (parsed.data.featured !== undefined) input.isFeatured = parsed.data.featured;
+    if (parsed.data.ingredients !== undefined) input.tags = parsed.data.ingredients;
+
+    const item = await updateMenuItem(input);
+
+    if (!item) {
+      return NextResponse.json(
+        { error: "آیتم منو یافت نشد." },
+        { status: 404 },
+      );
     }
 
-    const item = await prisma.menuItem.update({
-      where: { id: parsed.data.id },
-      data: updateData,
-      include: { category: true },
+    return NextResponse.json({
+      data: toAdminMenuItem(item),
     });
-
-    await writeAuditLog("menu.updated", {
-      id: parsed.data.id,
-      title: item.name,
-    });
-
-    return Response.json({ data: toAdminMenuItem(item) });
   } catch (error) {
     console.error("[ADMIN MENU UPDATE ERROR]", error);
     return Response.json(
@@ -215,28 +178,25 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const parsed = z.object({ id: z.string().trim().min(1) }).safeParse(body);
+    const parsed = deleteMenuItemSchema.safeParse(body);
 
     if (!parsed.success) {
-      return Response.json(
+      return NextResponse.json(
         { error: "شناسه آیتم نامعتبر است." },
         { status: 400 },
       );
     }
 
-    const prisma = getPrismaClient();
-    const item = await prisma.menuItem.update({
-      where: { id: parsed.data.id },
-      data: { isActive: false },
-      include: { category: true },
-    });
+    const result = await softDeleteMenuItem(parsed.data.id);
 
-    await writeAuditLog("menu.deleted", {
-      id: parsed.data.id,
-      title: item.name,
-    });
+    if (!result) {
+      return NextResponse.json(
+        { error: "آیتم منو یافت نشد." },
+        { status: 404 },
+      );
+    }
 
-    return Response.json({ data: { id: item.id } });
+    return NextResponse.json({ data: result });
   } catch (error) {
     console.error("[ADMIN MENU DELETE ERROR]", error);
     return Response.json(

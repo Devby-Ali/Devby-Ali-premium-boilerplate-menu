@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 
@@ -7,11 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const STORAGE_KEY = "premium-admin-settings";
-
 interface SettingsDraftState {
   siteName: string;
   contactEmail: string;
+  contactPhone: string;
   address: string;
   tagline: string;
   heroTitle: string;
@@ -21,6 +20,7 @@ interface SettingsDraftState {
 const initialSettings: SettingsDraftState = {
   siteName: "Premium Menu",
   contactEmail: "hello@premiummenu.test",
+  contactPhone: "",
   address: "تهران، خیابان ...",
   tagline: "طعم‌های لوکس و تجربه‌ای خاص برای هر بازدید",
   heroTitle: "ارائه‌ی تجربه‌ای لوکس در هر لحظه",
@@ -28,34 +28,93 @@ const initialSettings: SettingsDraftState = {
     "از اولین لمس تا آخرین لقمه، برند شما باید حس حرفه‌ای بودن را منتقل کند.",
 };
 
-const loadSettings = () => {
-  if (typeof window === "undefined") {
-    return initialSettings;
-  }
-
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored
-      ? (JSON.parse(stored) as SettingsDraftState)
-      : initialSettings;
-  } catch {
-    return initialSettings;
-  }
-};
-
 export default function AdminSettingsPage() {
   const [settings, setSettings] =
-    React.useState<SettingsDraftState>(loadSettings);
+    React.useState<SettingsDraftState>(initialSettings);
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
   const [savedMessage, setSavedMessage] = React.useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
+  // بارگذاری تنظیمات از API
   React.useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  }, [settings]);
+    const loadSettings = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/admin/settings", { credentials: "include" });
+        if (res.ok) {
+          const payload = await res.json();
+          if (payload?.data) {
+            setSettings((prev) => ({
+              siteName: payload.data.siteName ?? prev.siteName,
+              contactEmail: payload.data.contactEmail ?? prev.contactEmail,
+              contactPhone: payload.data.contactPhone ?? prev.contactPhone,
+              address: payload.data.address ?? prev.address,
+              // tagline و heroTitle و heroSubtitle در settings-service نیستند
+              // بنابراین از مقادیر پیش‌فرض استفاده می‌کنیم
+              tagline: prev.tagline,
+              heroTitle: prev.heroTitle,
+              heroSubtitle: prev.heroSubtitle,
+            }));
+          }
+        } else {
+          // fallback: از مقادیر پیش‌فرض استفاده کن
+        }
+      } catch {
+        // network error — use defaults
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleSubmit = (event: React.FormEvent) => {
+    void loadSettings();
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setSavedMessage("تنظیمات برند با موفقیت ذخیره شد.");
+    setSaving(true);
+    setSavedMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteName: settings.siteName,
+          contactEmail: settings.contactEmail || null,
+          contactPhone: settings.contactPhone || null,
+          address: settings.address || null,
+        }),
+      });
+
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload?.error ?? "خطا در ذخیره تنظیمات");
+      }
+
+      setSavedMessage("تنظیمات برند با موفقیت ذخیره شد.");
+      setTimeout(() => setSavedMessage(null), 4000);
+    } catch (err: any) {
+      setErrorMessage(err?.message ?? "خطا در ذخیره تنظیمات");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
+          <p className="text-sm text-stone-600 dark:text-stone-400">
+            در حال بارگذاری تنظیمات...
+          </p>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -105,18 +164,33 @@ export default function AdminSettingsPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">آدرس</Label>
-              <Input
-                id="address"
-                value={settings.address}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    address: event.target.value,
-                  }))
-                }
-              />
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="contactPhone">تلفن تماس</Label>
+                <Input
+                  id="contactPhone"
+                  value={settings.contactPhone}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      contactPhone: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">آدرس</Label>
+                <Input
+                  id="address"
+                  value={settings.address}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      address: event.target.value,
+                    }))
+                  }
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="tagline">شعار برند</Label>
@@ -166,13 +240,21 @@ export default function AdminSettingsPage() {
               </p>
             ) : null}
 
-            <Button type="submit">ذخیره تنظیمات</Button>
+            {errorMessage ? (
+              <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorMessage}
+              </p>
+            ) : null}
+
+            <Button type="submit" disabled={saving}>
+              {saving ? "در حال ذخیره..." : "ذخیره تنظیمات"}
+            </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>پیش‌نمایش برند</CardTitle>
+            <CardTitle>پیش‌نمای برند</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-7 text-stone-600 dark:text-stone-400">
             <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">
@@ -184,6 +266,7 @@ export default function AdminSettingsPage() {
             <p>{settings.heroSubtitle}</p>
             <p>{settings.tagline}</p>
             <p>{settings.contactEmail}</p>
+            <p>{settings.contactPhone}</p>
             <p>{settings.address}</p>
           </CardContent>
         </Card>
