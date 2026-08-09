@@ -88,6 +88,19 @@ export async function getSessionFromCookie() {
   return decodeSession(sessionValue) ?? null;
 }
 
+/**
+ * Server-side guard for admin API routes (PRD FR-A01 / ROADMAP F1:
+ * "server-side role check in every admin API"). The `proxy.ts` middleware
+ * only guards /admin/* pages — /api/admin/* routes must call this explicitly.
+ *
+ * @returns the admin session, or `null` when unauthenticated/unauthorized.
+ */
+export async function requireAdminSession(): Promise<UserSession | null> {
+  const session = await getSessionFromCookie();
+  if (!session || session.role !== "admin") return null;
+  return session;
+}
+
 export async function setSessionCookie(session: UserSession) {
   const cookieStore = await cookies();
   const value = await encodeSession(session);

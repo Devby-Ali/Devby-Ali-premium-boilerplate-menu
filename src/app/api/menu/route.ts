@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
         prepTime: item.preparationTime,
         ingredients: item.tags ?? [],
         story: item.description,
+        imageUrl: item.imageUrl ?? null,
       })),
       categories: categories.map((c) => ({
         slug: c.slug,

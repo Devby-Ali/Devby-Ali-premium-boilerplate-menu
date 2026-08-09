@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Layers3, Plus, Search, X } from "lucide-react";
+import { ImagePlus, Layers3, Plus, Search, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ interface MenuItemData {
   prepTime: number;
   ingredients: string[];
   story: string;
+  imageUrl: string | null;
 }
 
 interface CategorySummary {
@@ -37,6 +38,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   signature: "ویژه",
 };
 
+const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/avif,image/gif";
+const MAX_UPLOAD_MB = 5;
+
 function formatPrice(value: number) {
   return `${value.toLocaleString("fa-IR")} تومان`;
 }
@@ -47,6 +51,7 @@ interface MenuDraftState {
   category: string;
   price: string;
   prepTime: string;
+  imageUrl: string | null;
 }
 
 const createDraft = (): MenuDraftState => ({
@@ -55,6 +60,7 @@ const createDraft = (): MenuDraftState => ({
   category: "coffee",
   price: "",
   prepTime: "",
+  imageUrl: null,
 });
 
 export default function AdminMenuPage() {
@@ -63,10 +69,12 @@ export default function AdminMenuPage() {
   const [categories, setCategories] = React.useState<CategorySummary[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
   const [draft, setDraft] = React.useState<MenuDraftState>(createDraft);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [showComposer, setShowComposer] = React.useState(false);
   const [feedback, setFeedback] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const loadItems = React.useCallback(async () => {
     setLoading(true);
@@ -119,6 +127,45 @@ export default function AdminMenuPage() {
     setEditingId(null);
     setShowComposer(false);
     setFeedback(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      setFeedback(`حجم تصویر بیش از حد مجاز (${MAX_UPLOAD_MB} مگابایت) است.`);
+      event.target.value = "";
+      return;
+    }
+
+    setUploading(true);
+    setFeedback(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("ownerType", "menu_item");
+
+      const response = await fetch("/api/admin/media/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.data?.url) {
+        throw new Error(payload?.error ?? "آپلود تصویر با خطا مواجه شد.");
+      }
+
+      setDraft((current) => ({ ...current, imageUrl: payload.data.url as string }));
+      setFeedback("تصویر آپلود شد. برای نهایی شدن، آیتم را ذخیره کنید.");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "آپلود تصویر با خطا مواجه شد.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -150,6 +197,7 @@ export default function AdminMenuPage() {
           prepTime,
           featured: false,
           ingredients: ["ترکیب سفارشی"],
+          imageUrl: draft.imageUrl,
         }),
       });
 
@@ -213,6 +261,7 @@ export default function AdminMenuPage() {
       category: item.category,
       price: String(item.price),
       prepTime: String(item.prepTime),
+      imageUrl: item.imageUrl,
     });
     setShowComposer(true);
     setFeedback(null);
@@ -305,6 +354,61 @@ export default function AdminMenuPage() {
                   />
                 </div>
 
+                {/* ── Image upload (PRD UC-06 / AF-06) ─────────────────── */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="menu-image">تصویر آیتم</Label>
+                  <div className="flex flex-wrap items-center gap-4">
+                    {draft.imageUrl ? (
+                      <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-stone-200 dark:border-stone-700">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- admin preview of a just-uploaded file */}
+                        <img
+                          src={draft.imageUrl}
+                          alt="پیش‌نمایش تصویر آیتم"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-dashed border-stone-300 text-stone-400 dark:border-stone-700">
+                        <ImagePlus className="h-6 w-6" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      <input
+                        ref={fileInputRef}
+                        id="menu-image"
+                        type="file"
+                        accept={ACCEPTED_IMAGE_TYPES}
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={uploading || submitting}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploading ? "در حال آپلود..." : draft.imageUrl ? "تغییر تصویر" : "آپلود تصویر"}
+                      </Button>
+                      {draft.imageUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={uploading || submitting}
+                          onClick={() => setDraft((current) => ({ ...current, imageUrl: null }))}
+                        >
+                          <Trash2 className="ml-1 h-4 w-4" />
+                          حذف تصویر
+                        </Button>
+                      )}
+                      <p className="text-xs text-stone-500 dark:text-stone-400">
+                        فرمت‌های مجاز: jpg، png، webp، avif، gif — حداکثر {MAX_UPLOAD_MB} مگابایت
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="menu-category">دسته‌بندی</Label>
                   <select
@@ -340,7 +444,7 @@ export default function AdminMenuPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 md:col-span-2">
-                  <Button type="submit" disabled={submitting}>
+                  <Button type="submit" disabled={submitting || uploading}>
                     {submitting ? "در حال ذخیره..." : editingId ? "ذخیره تغییرات" : "افزودن آیتم"}
                   </Button>
                   <Button type="button" variant="outline" onClick={resetComposer} disabled={submitting}>
@@ -370,14 +474,30 @@ export default function AdminMenuPage() {
           <Card key={item.id}>
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <CardTitle className="text-xl">{item.title}</CardTitle>
-                  <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{item.slug}</p>
-                  {item.featured && (
-                    <span className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
-                      ویژه
-                    </span>
+                <div className="flex items-start gap-4">
+                  {item.imageUrl ? (
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-stone-200 dark:border-stone-700">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- small admin thumbnail */}
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-dashed border-stone-300 text-stone-400 dark:border-stone-700">
+                      <ImagePlus className="h-5 w-5" />
+                    </div>
                   )}
+                  <div>
+                    <CardTitle className="text-xl">{item.title}</CardTitle>
+                    <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{item.slug}</p>
+                    {item.featured && (
+                      <span className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                        ویژه
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleEdit(item)} disabled={submitting}>

@@ -1,8 +1,14 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { requireAdminSession } from "@/lib/auth";
 import { getOrders, getOrderStats, updateOrderStatus } from "@/lib/order-service";
 
+function unauthorized() {
+  return NextResponse.json({ error: "دسترسی غیرمجاز." }, { status: 401 });
+}
+
 export async function GET(request: NextRequest) {
+  if (!(await requireAdminSession())) return unauthorized();
   try {
     const { searchParams } = request.nextUrl;
     const status = searchParams.get("status");
@@ -26,6 +32,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (!(await requireAdminSession())) return unauthorized();
   try {
     const body = await request.json();
     const parsed = z.object({

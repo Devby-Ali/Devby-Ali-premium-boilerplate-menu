@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
 
@@ -21,6 +22,7 @@ interface MenuItemData {
   prepTime: number;
   ingredients: string[];
   story: string;
+  imageUrl: string | null;
 }
 
 interface CategoryData {
@@ -144,6 +146,25 @@ export function ListPageClient() {
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredItems.map((item) => (
           <Card key={item.slug} className="overflow-hidden">
+            <Link
+              href={`/product/${item.slug}`}
+              className="relative block aspect-[16/10] w-full overflow-hidden bg-stone-100 dark:bg-stone-800"
+              aria-label={`مشاهده جزئیات ${item.title}`}
+            >
+              {item.imageUrl ? (
+                <Image
+                  src={item.imageUrl}
+                  alt={item.title}
+                  fill
+                  sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+                  className="object-cover transition-transform duration-300 hover:scale-105"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(47,107,79,0.15),_transparent_65%)] text-sm text-stone-400 dark:text-stone-500">
+                  تصویری ثبت نشده است
+                </div>
+              )}
+            </Link>
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div>

@@ -1,5 +1,6 @@
 ﻿import * as React from "react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -7,11 +8,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMenuItemBySlug as getMenuItemBySlugFromService, getAllMenuItems } from "@/lib/menu-service";
 
-export const revalidate = 60;
+// ISR per PRD §7.4: /product/[slug] revalidates every 300s.
+export const revalidate = 300;
+// Segments not generated at build time are rendered on demand (then cached).
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const items = await getAllMenuItems();
-  return items.filter((i) => i.isActive).map((item) => ({ slug: item.slug }));
+  try {
+    const items = await getAllMenuItems();
+    return items.filter((i) => i.isActive).map((item) => ({ slug: item.slug }));
+  } catch (error) {
+    // The database may be unreachable at build time (CI, cold deploy).
+    // Returning [] defers rendering to runtime on-demand ISR instead of
+    // failing the whole build.
+    console.error("[PRODUCT PAGE] generateStaticParams failed:", error);
+    return [];
+  }
 }
 
 function formatPrice(value: number) {
@@ -38,6 +50,11 @@ export async function generateMetadata({
     description: product.description,
     alternates: {
       canonical: `/product/${product.slug}`,
+    },
+    openGraph: {
+      title: product.name,
+      description: product.description ?? undefined,
+      images: product.imageUrl ? [product.imageUrl] : undefined,
     },
   };
 }
@@ -71,6 +88,22 @@ export default async function ProductPage({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] border border-stone-200 bg-stone-100 dark:border-stone-800 dark:bg-stone-800">
+            {product.imageUrl ? (
+              <Image
+                src={product.imageUrl}
+                alt={product.name}
+                fill
+                priority
+                sizes="(min-width: 1024px) 64rem, 100vw"
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(47,107,79,0.15),_transparent_65%)] text-sm text-stone-400 dark:text-stone-500">
+                تصویری برای این آیتم ثبت نشده است
+              </div>
+            )}
+          </div>
           <p className="max-w-3xl text-lg leading-8 text-stone-600 dark:text-stone-400">
             {product.description}
           </p>

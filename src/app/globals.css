@@ -54,7 +54,7 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  --font-sans: var(--font-vazirmatn), "Segoe UI", Arial, sans-serif;
+  --font-sans: var(--font-vazirmatn-arabic), var(--font-vazirmatn-latin), "Segoe UI", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --radius: var(--radius);
 }

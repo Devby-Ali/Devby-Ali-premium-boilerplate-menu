@@ -1,18 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { requireAdminSession } from "@/lib/auth";
+import { slugify, ensureUniqueSlug } from "@/lib/slug";
 import {
   getAllMenuItems,
   createMenuItem,
   updateMenuItem,
   softDeleteMenuItem,
   getCategoriesWithCount,
+  menuItemSlugExists,
   type CreateMenuItemInput,
   type UpdateMenuItemInput,
 } from "@/lib/menu-service";
 import type { MenuItem } from "@/types";
 
 const CATEGORY_SLUGS = ["coffee", "dessert", "savory", "signature"] as const;
+
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .max(2048)
+  .nullable()
+  .optional();
 
 const createMenuItemSchema = z.object({
   title: z.string().trim().min(1, "عنوان الزامی است"),
@@ -22,6 +32,7 @@ const createMenuItemSchema = z.object({
   prepTime: z.number().positive("زمان آماده‌سازی باید مثبت باشد"),
   featured: z.boolean().optional().default(false),
   ingredients: z.array(z.string()).optional().default([]),
+  imageUrl: imageUrlSchema,
 });
 
 const updateMenuItemSchema = z.object({
@@ -33,19 +44,15 @@ const updateMenuItemSchema = z.object({
   prepTime: z.number().positive().optional(),
   featured: z.boolean().optional(),
   ingredients: z.array(z.string()).optional(),
+  imageUrl: imageUrlSchema,
 });
 
 const deleteMenuItemSchema = z.object({
   id: z.string().trim().min(1, "شناسه الزامی است"),
 });
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
+function unauthorized() {
+  return NextResponse.json({ error: "دسترسی غیرمجاز." }, { status: 401 });
 }
 
 function toAdminMenuItem(item: MenuItem) {
@@ -61,10 +68,13 @@ function toAdminMenuItem(item: MenuItem) {
     prepTime: item.preparationTime ?? 0,
     ingredients: item.tags ?? [],
     story: item.description ?? "",
+    imageUrl: item.imageUrl ?? null,
   };
 }
 
 export async function GET() {
+  if (!(await requireAdminSession())) return unauthorized();
+
   try {
     const [items, categories] = await Promise.all([
       getAllMenuItems(),
@@ -85,6 +95,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await requireAdminSession())) return unauthorized();
+
   try {
     const body = await request.json();
     const parsed = createMenuItemSchema.safeParse(body);
@@ -99,7 +111,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const slug = slugify(parsed.data.title);
+    // Unicode-aware slug (Persian-safe), guaranteed unique (PRD FR-A05).
+    const slug = await ensureUniqueSlug(slugify(parsed.data.title), menuItemSlugExists);
 
     const input: CreateMenuItemInput = {
       name: parsed.data.title,
@@ -107,6 +120,7 @@ export async function POST(request: NextRequest) {
       description: parsed.data.description,
       price: parsed.data.price,
       categorySlug: parsed.data.category,
+      imageUrl: parsed.data.imageUrl ?? null,
       isFeatured: parsed.data.featured,
       preparationTime: parsed.data.prepTime,
       tags: parsed.data.ingredients,
@@ -127,6 +141,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (!(await requireAdminSession())) return unauthorized();
+
   try {
     const body = await request.json();
     const parsed = updateMenuItemSchema.safeParse(body);
@@ -145,7 +161,7 @@ export async function PATCH(request: NextRequest) {
 
     if (parsed.data.title) {
       input.name = parsed.data.title;
-      input.slug = slugify(parsed.data.title);
+      input.slug = await ensureUniqueSlug(slugify(parsed.data.title), menuItemSlugExists);
     }
     if (parsed.data.description !== undefined) input.description = parsed.data.description;
     if (parsed.data.category !== undefined) input.categorySlug = parsed.data.category;
@@ -153,6 +169,7 @@ export async function PATCH(request: NextRequest) {
     if (parsed.data.prepTime !== undefined) input.preparationTime = parsed.data.prepTime;
     if (parsed.data.featured !== undefined) input.isFeatured = parsed.data.featured;
     if (parsed.data.ingredients !== undefined) input.tags = parsed.data.ingredients;
+    if (parsed.data.imageUrl !== undefined) input.imageUrl = parsed.data.imageUrl;
 
     const item = await updateMenuItem(input);
 
@@ -168,7 +185,7 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     console.error("[ADMIN MENU UPDATE ERROR]", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "به‌روزرسانی آیتم منو با خطا مواجه شد." },
       { status: 500 },
     );
@@ -176,6 +193,8 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  if (!(await requireAdminSession())) return unauthorized();
+
   try {
     const body = await request.json();
     const parsed = deleteMenuItemSchema.safeParse(body);
@@ -199,7 +218,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ data: result });
   } catch (error) {
     console.error("[ADMIN MENU DELETE ERROR]", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "حذف آیتم منو با خطا مواجه شد." },
       { status: 500 },
     );

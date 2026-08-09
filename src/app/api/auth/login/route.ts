@@ -4,15 +4,29 @@ import bcrypt from "bcryptjs";
 
 import { clearSessionCookie, setSessionCookie } from "@/lib/auth";
 import { env } from "@/lib/env";
-import { getPrismaClient } from "@/server/prisma";
+import {
+  ensureInitialAdmin,
+  findUserByEmail,
+  findUserByPhone,
+} from "@/lib/user-service";
 
 // ─────────────────────────────────────────────
 //  Validation Schema
+//  PRD FR-A02: login with email OR mobile + password.
+//  `email` is kept for backward compatibility with the current login form;
+//  `identifier` (email or phone) is the forward-compatible field.
 // ─────────────────────────────────────────────
-const loginSchema = z.object({
-  email: z.string().trim().email("ایمیل معتبر نیست"),
-  password: z.string().min(4, "رمز عبور باید حداقل ۴ کاراکتر باشد"),
-});
+const loginSchema = z
+  .object({
+    identifier: z.string().trim().min(3).optional(),
+    email: z.string().trim().min(3).optional(),
+    password: z.string().min(4, "رمز عبور باید حداقل ۴ کاراکتر باشد"),
+  })
+  .refine((v) => v.identifier || v.email, {
+    message: "ایمیل یا شماره موبایل الزامی است",
+  });
+
+const PHONE_PATTERN = /^\+?\d[\d\s-]{7,14}$/;
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,55 +43,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password } = parsed.data;
+    const { password } = parsed.data;
+    const identifier = (parsed.data.identifier ?? parsed.data.email ?? "").trim();
 
-    const isInitialAdminLogin =
-      email.toLowerCase() === env.ADMIN_INITIAL_EMAIL.toLowerCase() &&
-      password === env.ADMIN_INITIAL_PASSWORD;
+    // ── Find the user (by phone or email) ──────────────────────────
+    let userWithRole = PHONE_PATTERN.test(identifier) && !identifier.includes("@")
+      ? await findUserByPhone(identifier)
+      : await findUserByEmail(identifier.toLowerCase());
 
-    if (isInitialAdminLogin) {
-      const session = {
-        id: "fallback-admin",
-        name: "Administrator",
-        email: env.ADMIN_INITIAL_EMAIL,
-        role: "admin",
-        roleId: "fallback-admin-role",
-      };
+    // ── First-run bootstrap: provision the initial admin from env ──
+    // If no DB user matches but the credentials are the configured initial
+    // admin, create that admin in the database (seed-on-first-login) so the
+    // session is always backed by a real user document.
+    if (!userWithRole) {
+      const isInitialAdmin =
+        identifier.toLowerCase() === env.ADMIN_INITIAL_EMAIL.toLowerCase() &&
+        password === env.ADMIN_INITIAL_PASSWORD;
 
-      await setSessionCookie(session);
-
-      return Response.json({
-        message: "با موفقیت وارد شدید.",
-        user: session,
-      });
+      if (isInitialAdmin) {
+        userWithRole = await ensureInitialAdmin();
+      }
     }
 
-    const prisma = getPrismaClient();
-
-    if (!prisma) {
-      return Response.json(
-        {
-          error:
-            "در حال حاضر دسترسی به پایگاه داده مقدور نیست. لطفاً دوباره تلاش کنید.",
-        },
-        { status: 503 },
-      );
-    }
-
-    // جستجوی کاربر با ایمیل (و role مرتبط)
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { role: true },
-    });
-
-    if (!user) {
+    if (!userWithRole) {
       return Response.json(
         { error: "ایمیل یا رمز عبور اشتباه است." },
         { status: 401 },
       );
     }
 
-    // بررسی فعال بودن کاربر
+    const { user, role } = userWithRole;
+
     if (!user.isActive) {
       return Response.json(
         { error: "حساب کاربری شما غیرفعال شده است." },
@@ -85,14 +81,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // بررسی اینکه نقش کاربر admin باشد (اختیاری بسته به نیاز پروژه)
-    if (user.role?.name !== "admin") {
+    if (role?.name !== "admin") {
       return Response.json({ error: "دسترسی غیرمجاز." }, { status: 403 });
     }
 
-    // تطبیق پسورد هش‌شده
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
     if (!isPasswordValid) {
       return Response.json(
         { error: "ایمیل یا رمز عبور اشتباه است." },
@@ -100,13 +93,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ایجاد نشست
     const session = {
-      id: user.id,
+      id: user._id.toHexString(),
       name: user.name,
       email: user.email,
-      role: user.role.name,
-      roleId: user.role.id,
+      role: role.name,
+      roleId: role._id.toHexString(),
     };
 
     await setSessionCookie(session);

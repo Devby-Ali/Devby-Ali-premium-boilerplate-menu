@@ -1,58 +1,20 @@
-﻿// src/lib/order-service.ts
-// Data service for orders with Prisma + in-memory fallback.
+// src/lib/order-service.ts
+// Data service for orders (MongoDB driver — see src/server/db.ts).
+// MVP: read-only preview for the admin panel; the full commerce flow
+// (cart → checkout → payment) arrives in phases 6–7 per ROADMAP.md.
 
-import type { Order } from "@prisma/client";
-import { getPrismaClient } from "@/server/prisma";
+import { ObjectId } from "mongodb";
+
+import { ordersCol, toObjectId, type OrderDoc } from "@/server/db";
 import type { Order as OrderType } from "@/types";
-
-// ------------------------------------------------------------------
-// In-memory store
-// ------------------------------------------------------------------
-const memOrders: Map<string, Order> = new Map();
-let memNextId = 1;
-
-function nextMemOrderId(): string {
-  return `ord_mem_${memNextId++}`;
-}
-
-// Seed some demo orders
-if (memOrders.size === 0) {
-  const demoOrders: Omit<Order, "id" | "createdAt" | "updatedAt" | "payments" | "user">[] = [
-    { userId: null, status: "pending", subtotal: 38000, discount: 0, total: 38000, currency: "IRR", notes: null, deliveryType: "dine_in", paymentStatus: "pending", gateway: null },
-    { userId: null, status: "processing", subtotal: 110000, discount: 0, total: 110000, currency: "IRR", notes: null, deliveryType: "takeaway", paymentStatus: "paid", gateway: null },
-    { userId: null, status: "pending", subtotal: 65000, discount: 0, total: 65000, currency: "IRR", notes: null, deliveryType: "dine_in", paymentStatus: "pending", gateway: null },
-  ];
-  demoOrders.forEach((o) => {
-    const id = nextMemOrderId();
-    const now = new Date();
-    memOrders.set(id, { ...o, id, createdAt: now, updatedAt: now } as Order);
-  });
-}
-
-// ------------------------------------------------------------------
-// Prisma availability check
-// ------------------------------------------------------------------
-let prismaAvailable: boolean | null = null;
-
-async function isPrismaAvailable(): Promise<boolean> {
-  if (prismaAvailable !== null) return prismaAvailable;
-  try {
-    const prisma = getPrismaClient();
-    await prisma.$connect();
-    prismaAvailable = true;
-  } catch {
-    prismaAvailable = false;
-  }
-  return prismaAvailable;
-}
 
 // ------------------------------------------------------------------
 // Type mapper
 // ------------------------------------------------------------------
-function mapOrder(o: Order): OrderType {
+function mapOrder(o: OrderDoc): OrderType {
   return {
-    id: o.id,
-    userId: o.userId ?? undefined,
+    id: o._id.toHexString(),
+    userId: o.userId ? o.userId.toHexString() : undefined,
     status: o.status as OrderType["status"],
     subtotal: o.subtotal,
     discount: o.discount,
@@ -60,7 +22,7 @@ function mapOrder(o: Order): OrderType {
     currency: o.currency,
     deliveryType: o.deliveryType as OrderType["deliveryType"],
     paymentStatus: o.paymentStatus as OrderType["paymentStatus"],
-    gateway: o.gateway as OrderType["gateway"] | undefined,
+    gateway: (o.gateway ?? undefined) as OrderType["gateway"] | undefined,
     createdAt: o.createdAt.toISOString(),
     updatedAt: o.updatedAt.toISOString(),
   };
@@ -70,72 +32,48 @@ function mapOrder(o: Order): OrderType {
 // Order methods
 // ------------------------------------------------------------------
 export async function getOrders(): Promise<OrderType[]> {
-  if (await isPrismaAvailable()) {
-    const prisma = getPrismaClient();
-    const orders = await prisma.order.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    return orders.map(mapOrder);
-  }
-  return [...memOrders.values()]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .map(mapOrder);
+  const col = await ordersCol();
+  const orders = await col.find({}).sort({ createdAt: -1 }).toArray();
+  return orders.map(mapOrder);
 }
 
 export async function getOrdersByStatus(status: string): Promise<OrderType[]> {
-  if (await isPrismaAvailable()) {
-    const prisma = getPrismaClient();
-    const orders = await prisma.order.findMany({
-      where: { status },
-      orderBy: { createdAt: "desc" },
-    });
-    return orders.map(mapOrder);
-  }
-  return [...memOrders.values()]
-    .filter((o) => o.status === status)
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .map(mapOrder);
+  const col = await ordersCol();
+  const orders = await col.find({ status }).sort({ createdAt: -1 }).toArray();
+  return orders.map(mapOrder);
 }
 
 export async function updateOrderStatus(
   id: string,
   status: string,
 ): Promise<OrderType | null> {
-  if (await isPrismaAvailable()) {
-    const prisma = getPrismaClient();
-    const order = await prisma.order.update({
-      where: { id },
-      data: { status },
-    });
-    return mapOrder(order);
-  }
-  const existing = memOrders.get(id);
-  if (!existing) return null;
-  existing.status = status;
-  existing.updatedAt = new Date();
-  memOrders.set(id, existing);
-  return mapOrder(existing);
+  const objectId = toObjectId(id);
+  if (!objectId) return null;
+
+  const col = await ordersCol();
+  const updated = await col.findOneAndUpdate(
+    { _id: objectId },
+    { $set: { status, updatedAt: new Date() } },
+    { returnDocument: "after" },
+  );
+  return updated ? mapOrder(updated) : null;
 }
 
 export async function getOrderStats() {
-  if (await isPrismaAvailable()) {
-    const prisma = getPrismaClient();
-    const [pending, processing, ready, delivered, cancelled] = await Promise.all([
-      prisma.order.count({ where: { status: "pending" } }),
-      prisma.order.count({ where: { status: "processing" } }),
-      prisma.order.count({ where: { status: "ready" } }),
-      prisma.order.count({ where: { status: "delivered" } }),
-      prisma.order.count({ where: { status: "cancelled" } }),
-    ]);
-    return { pending, processing, ready, delivered, cancelled };
-  }
-  const all = [...memOrders.values()];
+  const col = await ordersCol();
+  const grouped = await col
+    .aggregate<{ _id: string; count: number }>([
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ])
+    .toArray();
+
+  const byStatus = new Map(grouped.map((g) => [g._id, g.count]));
   return {
-    pending: all.filter((o) => o.status === "pending").length,
-    processing: all.filter((o) => o.status === "processing").length,
-    ready: all.filter((o) => o.status === "ready").length,
-    delivered: all.filter((o) => o.status === "delivered").length,
-    cancelled: all.filter((o) => o.status === "cancelled").length,
+    pending: byStatus.get("pending") ?? 0,
+    processing: byStatus.get("processing") ?? 0,
+    ready: byStatus.get("ready") ?? 0,
+    delivered: byStatus.get("delivered") ?? 0,
+    cancelled: byStatus.get("cancelled") ?? 0,
   };
 }
 
@@ -145,22 +83,11 @@ export async function createOrder(input: {
   deliveryType?: string;
   notes?: string | null;
 }): Promise<OrderType> {
-  if (await isPrismaAvailable()) {
-    const prisma = getPrismaClient();
-    const order = await prisma.order.create({
-      data: {
-        subtotal: input.subtotal,
-        total: input.total,
-        deliveryType: input.deliveryType ?? "dine_in",
-        notes: input.notes ?? null,
-      },
-    });
-    return mapOrder(order);
-  }
-  const id = nextMemOrderId();
+  const col = await ordersCol();
   const now = new Date();
-  const order: Order = {
-    id,
+
+  const doc: OrderDoc = {
+    _id: new ObjectId(),
     userId: null,
     status: "pending",
     subtotal: input.subtotal,
@@ -174,6 +101,7 @@ export async function createOrder(input: {
     createdAt: now,
     updatedAt: now,
   };
-  memOrders.set(id, order);
-  return mapOrder(order);
+
+  await col.insertOne(doc);
+  return mapOrder(doc);
 }

@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { requireAdminSession } from "@/lib/auth";
 import {
   getCategories,
   getCategoriesWithCount,
@@ -7,6 +8,10 @@ import {
   updateCategory,
   deleteCategory,
 } from "@/lib/menu-service";
+
+function unauthorized() {
+  return NextResponse.json({ error: "دسترسی غیرمجاز." }, { status: 401 });
+}
 
 const createSchema = z.object({
   name: z.string().trim().min(1, "نام دسته الزامی است"),
@@ -22,6 +27,7 @@ const updateSchema = z.object({
 });
 
 export async function GET() {
+  if (!(await requireAdminSession())) return unauthorized();
   try {
     const categories = await getCategoriesWithCount();
     return NextResponse.json({ data: categories });
@@ -32,6 +38,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await requireAdminSession())) return unauthorized();
   try {
     const body = await request.json();
     const parsed = createSchema.safeParse(body);
@@ -50,6 +57,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (!(await requireAdminSession())) return unauthorized();
   try {
     const body = await request.json();
     const schema = updateSchema.extend({ id: z.string().trim().min(1) });
@@ -73,6 +81,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  if (!(await requireAdminSession())) return unauthorized();
   try {
     const body = await request.json();
     const parsed = z.object({ id: z.string().trim().min(1) }).safeParse(body);

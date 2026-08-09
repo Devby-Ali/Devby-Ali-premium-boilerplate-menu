@@ -1,6 +1,11 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { requireAdminSession } from "@/lib/auth";
 import { getSettings, updateSettings, type UpdateSettingsInput } from "@/lib/settings-service";
+
+function unauthorized() {
+  return NextResponse.json({ error: "دسترسی غیرمجاز." }, { status: 401 });
+}
 
 const updateSchema = z.object({
   siteName: z.string().trim().min(1).optional(),
@@ -14,6 +19,7 @@ const updateSchema = z.object({
 });
 
 export async function GET() {
+  if (!(await requireAdminSession())) return unauthorized();
   try {
     const settings = await getSettings();
     return NextResponse.json({ data: settings });
@@ -24,6 +30,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (!(await requireAdminSession())) return unauthorized();
   try {
     const body = await request.json();
     const parsed = updateSchema.safeParse(body);

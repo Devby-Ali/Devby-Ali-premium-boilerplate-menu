@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -92,13 +93,26 @@ export default async function Home() {
                   key={item.slug}
                   className="flex items-center justify-between gap-4 rounded-[1rem] border border-stone-200 px-4 py-3 dark:border-stone-800"
                 >
-                  <div>
-                    <p className="font-semibold text-stone-900 dark:text-stone-100">
-                      {item.name}
-                    </p>
-                    <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-                      {item.description}
-                    </p>
+                  <div className="flex items-center gap-4">
+                    {item.imageUrl ? (
+                      <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800">
+                        <Image
+                          src={item.imageUrl}
+                          alt={item.name}
+                          fill
+                          sizes="4rem"
+                          className="object-cover"
+                        />
+                      </span>
+                    ) : null}
+                    <div>
+                      <p className="font-semibold text-stone-900 dark:text-stone-100">
+                        {item.name}
+                      </p>
+                      <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+                        {item.description}
+                      </p>
+                    </div>
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">

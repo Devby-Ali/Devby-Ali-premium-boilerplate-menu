@@ -32,6 +32,7 @@ export async function GET(
         prepTime: item.preparationTime,
         ingredients: item.tags ?? [],
         story: item.description,
+        imageUrl: item.imageUrl ?? null,
       },
     });
   } catch (error) {
