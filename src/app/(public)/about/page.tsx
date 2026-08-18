@@ -1,29 +1,28 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import type { Metadata } from "next";
-
 export const metadata: Metadata = {
-  title: "درباره ما | Premium Menu",
-  description:
-    "معرفی برند و فلسفه منوی دیجیتال مدرن با تجربه کاربری حرفه‌ای و آماده برای توسعه آینده",
-  alternates: {
-    canonical: "/about",
-  },
+  title: "درباره ما",
+  description: "آشنایی با کافه رستوران، ارزش‌های ما و تجربه‌ای که برای مهمانان خود می‌سازیم",
+  alternates: { canonical: "/about" },
 };
 
 const pillars = [
-  { title: "هویت برند", description: "طراحی بصری منسجم با حس لوکس و آرامش." },
   {
-    title: "سرعت تجربه",
-    description: "انتقال سریع اطلاعات و دسترسی روان به منو و جزئیات.",
+    title: "کیفیت بی رقیب",
+    description: "هر آیتم منو با دقت انتخاب و با بهترین مواد اولیه تهیه می‌شود.",
   },
   {
-    title: "آماده‌سازی برای آینده",
-    description: "زیرساختی که برای پنل ادمین و سفارش‌گیری در آینده آماده است.",
+    title: "تجربه متمایز",
+    description: "فضایی آرام و حرفه‌ای برای لحظاتی که ارزش به‌یادماندن دارند.",
+  },
+  {
+    title: "خدمات صادقانه",
+    description: "تیم ما متعهد به ارائه خدمتی گرم، سریع و بدون تعارف است.",
   },
 ];
 
@@ -34,25 +33,22 @@ export default function AboutPage() {
         <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-5">
             <SectionHeading
-              eyebrow="About the experience"
-              title="یک منوی دیجیتال مدرن که حس برند و کیفیت را منتقل می‌کند."
-              description="این پروژه با تمرکز روی زیبایی، سرعت و آماده‌بودن برای توسعه آینده طراحی شده است. هدف ما ارائه یک تجربه شفاف، لوکس و قابل مدیریت برای برندهای رستورانی است."
+              eyebrow="داستان ما"
+              title="جایی که هر فنجان یک تجربه است."
+              description="ما باور داریم که یک وعده خوب فراتر از طعم است — ترکیبی از فضا، خدمت و توجه به جزئیات که مهمان را به بازگشت دعوت می‌کند."
             />
             <div className="flex flex-wrap gap-3">
               <Button asChild>
                 <Link href="/list">مشاهده منو</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/admin">ورود پنل ادمین</Link>
               </Button>
             </div>
           </div>
 
           <Card className="h-fit">
             <CardHeader>
-              <CardTitle>مزیت‌های اصلی</CardTitle>
+              <CardTitle>ارزش‌های ما</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm leading-7 text-stone-600 dark:text-stone-400">
+            <CardContent className="space-y-4 text-sm leading-7">
               {pillars.map((pillar) => (
                 <div
                   key={pillar.title}

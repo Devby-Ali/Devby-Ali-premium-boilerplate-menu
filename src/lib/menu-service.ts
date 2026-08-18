@@ -1,10 +1,5 @@
 // src/lib/menu-service.ts
-// Data service layer for menu items & categories.
-// Persistence: MongoDB via the official driver (see src/server/db.ts for why
-// PrismaClient cannot serve as the MongoDB runtime in Prisma 7.x).
-
 import { ObjectId } from "mongodb";
-
 import type { MenuItem, MenuCategory } from "@/types";
 import {
   menuCategoriesCol,
@@ -14,9 +9,6 @@ import {
   type MenuItemDoc,
 } from "@/server/db";
 
-// ------------------------------------------------------------------
-// Type mappers (document → public DTO)
-// ------------------------------------------------------------------
 type MenuItemDocWithCategory = MenuItemDoc & { category?: MenuCategoryDoc | null };
 
 function mapMenuItem(item: MenuItemDocWithCategory): MenuItem {
@@ -34,6 +26,10 @@ function mapMenuItem(item: MenuItemDocWithCategory): MenuItem {
     isActive: item.isActive,
     preparationTime: item.preparationTime ?? null,
     tags: item.tags ?? [],
+    stockCount: item.stockCount ?? null,
+    isUnlimited: item.isUnlimited ?? true,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
   };
 }
 
@@ -43,36 +39,30 @@ function mapCategory(cat: MenuCategoryDoc): MenuCategory {
     name: cat.name,
     slug: cat.slug,
     description: cat.description ?? null,
+    parentId: cat.parentId?.toHexString() ?? null,
     isActive: cat.isActive,
     sortOrder: cat.sortOrder,
+    scheduleStart: cat.scheduleStart?.toISOString() ?? null,
+    scheduleEnd: cat.scheduleEnd?.toISOString() ?? null,
+    scheduleDays: cat.scheduleDays ?? [],
+    createdAt: cat.createdAt.toISOString(),
+    updatedAt: cat.updatedAt.toISOString(),
   };
 }
 
-/** Attach category docs to item docs (single extra query, no $lookup). */
 async function withCategories(items: MenuItemDoc[]): Promise<MenuItemDocWithCategory[]> {
   if (items.length === 0) return [];
   const categoryIds = [...new Set(items.map((i) => i.categoryId.toHexString()))].map(
     (id) => new ObjectId(id),
   );
-  const cats = await (await menuCategoriesCol())
-    .find({ _id: { $in: categoryIds } })
-    .toArray();
+  const cats = await (await menuCategoriesCol()).find({ _id: { $in: categoryIds } }).toArray();
   const byId = new Map(cats.map((c) => [c._id.toHexString(), c]));
-  return items.map((item) => ({
-    ...item,
-    category: byId.get(item.categoryId.toHexString()) ?? null,
-  }));
+  return items.map((item) => ({ ...item, category: byId.get(item.categoryId.toHexString()) ?? null }));
 }
 
-// ------------------------------------------------------------------
-// Menu Items CRUD
-// ------------------------------------------------------------------
 export async function getMenuItems(): Promise<MenuItem[]> {
   const col = await menuItemsCol();
-  const items = await col
-    .find({ isActive: true })
-    .sort({ createdAt: -1 })
-    .toArray();
+  const items = await col.find({ isActive: true }).sort({ createdAt: -1 }).toArray();
   return (await withCategories(items)).map(mapMenuItem);
 }
 
@@ -102,8 +92,7 @@ export async function getMenuItemById(id: string): Promise<MenuItem | null> {
 
 export async function menuItemSlugExists(slug: string): Promise<boolean> {
   const col = await menuItemsCol();
-  const found = await col.findOne({ slug }, { projection: { _id: 1 } });
-  return found !== null;
+  return (await col.findOne({ slug }, { projection: { _id: 1 } })) !== null;
 }
 
 export interface CreateMenuItemInput {
@@ -116,13 +105,14 @@ export interface CreateMenuItemInput {
   isFeatured?: boolean;
   preparationTime?: number | null;
   tags?: string[];
+  stockCount?: number | null;
+  isUnlimited?: boolean;
 }
 
 export async function createMenuItem(input: CreateMenuItemInput): Promise<MenuItem> {
   const category = await ensureCategory(input.categorySlug);
   const col = await menuItemsCol();
   const now = new Date();
-
   const doc: MenuItemDoc = {
     _id: new ObjectId(),
     name: input.name,
@@ -136,10 +126,11 @@ export async function createMenuItem(input: CreateMenuItemInput): Promise<MenuIt
     isActive: true,
     preparationTime: input.preparationTime ?? null,
     tags: input.tags ?? [],
+    stockCount: input.stockCount ?? null,
+    isUnlimited: input.isUnlimited ?? true,
     createdAt: now,
     updatedAt: now,
   };
-
   await col.insertOne(doc);
   return mapMenuItem({ ...doc, category });
 }
@@ -156,6 +147,8 @@ export interface UpdateMenuItemInput {
   isActive?: boolean;
   preparationTime?: number | null;
   tags?: string[];
+  stockCount?: number | null;
+  isUnlimited?: boolean;
 }
 
 export async function updateMenuItem(input: UpdateMenuItemInput): Promise<MenuItem | null> {
@@ -172,6 +165,8 @@ export async function updateMenuItem(input: UpdateMenuItemInput): Promise<MenuIt
   if (input.isActive !== undefined) $set.isActive = input.isActive;
   if (input.preparationTime !== undefined) $set.preparationTime = input.preparationTime;
   if (input.tags !== undefined) $set.tags = input.tags;
+  if (input.stockCount !== undefined) $set.stockCount = input.stockCount;
+  if (input.isUnlimited !== undefined) $set.isUnlimited = input.isUnlimited;
 
   if (input.categorySlug) {
     const category = await ensureCategory(input.categorySlug);
@@ -179,13 +174,8 @@ export async function updateMenuItem(input: UpdateMenuItemInput): Promise<MenuIt
   }
 
   const col = await menuItemsCol();
-  const updated = await col.findOneAndUpdate(
-    { _id: objectId },
-    { $set },
-    { returnDocument: "after" },
-  );
+  const updated = await col.findOneAndUpdate({ _id: objectId }, { $set }, { returnDocument: "after" });
   if (!updated) return null;
-
   const [withCat] = await withCategories([updated]);
   return mapMenuItem(withCat!);
 }
@@ -194,16 +184,10 @@ export async function softDeleteMenuItem(id: string): Promise<{ id: string } | n
   const objectId = toObjectId(id);
   if (!objectId) return null;
   const col = await menuItemsCol();
-  const result = await col.updateOne(
-    { _id: objectId },
-    { $set: { isActive: false, updatedAt: new Date() } },
-  );
+  const result = await col.updateOne({ _id: objectId }, { $set: { isActive: false, updatedAt: new Date() } });
   return result.matchedCount > 0 ? { id } : null;
 }
 
-// ------------------------------------------------------------------
-// Categories
-// ------------------------------------------------------------------
 const CATEGORY_LABELS: Record<string, string> = {
   coffee: "کافی‌شاپ",
   dessert: "دسر",
@@ -211,7 +195,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   signature: "ویژه",
 };
 
-/** Find a category by slug, creating it (with a Persian label) when missing. */
 async function ensureCategory(categorySlug: string): Promise<MenuCategoryDoc> {
   const col = await menuCategoriesCol();
   const existing = await col.findOne({ slug: categorySlug });
@@ -226,6 +209,9 @@ async function ensureCategory(categorySlug: string): Promise<MenuCategoryDoc> {
     parentId: null,
     isActive: true,
     sortOrder: 0,
+    scheduleStart: null,
+    scheduleEnd: null,
+    scheduleDays: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -234,7 +220,6 @@ async function ensureCategory(categorySlug: string): Promise<MenuCategoryDoc> {
     await col.insertOne(doc);
     return doc;
   } catch {
-    // Unique-index race: another request created it first — re-read.
     const created = await col.findOne({ slug: categorySlug });
     if (created) return created;
     throw new Error(`Failed to ensure category "${categorySlug}"`);
@@ -250,7 +235,6 @@ export async function getCategories(): Promise<MenuCategory[]> {
 export async function getCategoriesWithCount(): Promise<(MenuCategory & { count: number })[]> {
   const catsCol = await menuCategoriesCol();
   const itemsCol = await menuItemsCol();
-
   const cats = await catsCol.find({ isActive: true }).sort({ sortOrder: 1 }).toArray();
   const counts = await itemsCol
     .aggregate<{ _id: ObjectId; count: number }>([
@@ -259,17 +243,18 @@ export async function getCategoriesWithCount(): Promise<(MenuCategory & { count:
     ])
     .toArray();
   const countById = new Map(counts.map((c) => [c._id.toHexString(), c.count]));
-
-  return cats.map((c) => ({
-    ...mapCategory(c),
-    count: countById.get(c._id.toHexString()) ?? 0,
-  }));
+  return cats.map((c) => ({ ...mapCategory(c), count: countById.get(c._id.toHexString()) ?? 0 }));
 }
 
 export async function createCategory(input: {
   name: string;
   slug: string;
   description?: string | null;
+  parentId?: string | null;
+  sortOrder?: number;
+  scheduleStart?: string | null;
+  scheduleEnd?: string | null;
+  scheduleDays?: number[];
 }): Promise<MenuCategory> {
   const col = await menuCategoriesCol();
   const now = new Date();
@@ -278,9 +263,12 @@ export async function createCategory(input: {
     name: input.name,
     slug: input.slug,
     description: input.description ?? null,
-    parentId: null,
+    parentId: input.parentId ? toObjectId(input.parentId) : null,
     isActive: true,
-    sortOrder: 0,
+    sortOrder: input.sortOrder ?? 0,
+    scheduleStart: input.scheduleStart ? new Date(input.scheduleStart) : null,
+    scheduleEnd: input.scheduleEnd ? new Date(input.scheduleEnd) : null,
+    scheduleDays: input.scheduleDays ?? [],
     createdAt: now,
     updatedAt: now,
   };
@@ -290,7 +278,17 @@ export async function createCategory(input: {
 
 export async function updateCategory(
   id: string,
-  input: { name?: string; slug?: string; description?: string | null; sortOrder?: number },
+  input: {
+    name?: string;
+    slug?: string;
+    description?: string | null;
+    sortOrder?: number;
+    isActive?: boolean;
+    parentId?: string | null;
+    scheduleStart?: string | null;
+    scheduleEnd?: string | null;
+    scheduleDays?: number[];
+  },
 ): Promise<MenuCategory | null> {
   const objectId = toObjectId(id);
   if (!objectId) return null;
@@ -300,13 +298,14 @@ export async function updateCategory(
   if (input.slug !== undefined) $set.slug = input.slug;
   if (input.description !== undefined) $set.description = input.description;
   if (input.sortOrder !== undefined) $set.sortOrder = input.sortOrder;
+  if (input.isActive !== undefined) $set.isActive = input.isActive;
+  if (input.parentId !== undefined) $set.parentId = input.parentId ? toObjectId(input.parentId) : null;
+  if (input.scheduleStart !== undefined) $set.scheduleStart = input.scheduleStart ? new Date(input.scheduleStart) : null;
+  if (input.scheduleEnd !== undefined) $set.scheduleEnd = input.scheduleEnd ? new Date(input.scheduleEnd) : null;
+  if (input.scheduleDays !== undefined) $set.scheduleDays = input.scheduleDays;
 
   const col = await menuCategoriesCol();
-  const updated = await col.findOneAndUpdate(
-    { _id: objectId },
-    { $set },
-    { returnDocument: "after" },
-  );
+  const updated = await col.findOneAndUpdate({ _id: objectId }, { $set }, { returnDocument: "after" });
   return updated ? mapCategory(updated) : null;
 }
 
@@ -314,9 +313,6 @@ export async function deleteCategory(id: string): Promise<{ id: string } | null>
   const objectId = toObjectId(id);
   if (!objectId) return null;
   const col = await menuCategoriesCol();
-  const result = await col.updateOne(
-    { _id: objectId },
-    { $set: { isActive: false, updatedAt: new Date() } },
-  );
+  const result = await col.updateOne({ _id: objectId }, { $set: { isActive: false, updatedAt: new Date() } });
   return result.matchedCount > 0 ? { id } : null;
 }

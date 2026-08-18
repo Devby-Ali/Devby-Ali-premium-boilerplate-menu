@@ -1,36 +1,28 @@
 // src/lib/order-service.ts
-// Data service for orders (MongoDB driver — see src/server/db.ts).
-// MVP: read-only preview for the admin panel; the full commerce flow
-// (cart → checkout → payment) arrives in phases 6–7 per ROADMAP.md.
-
 import { ObjectId } from "mongodb";
-
 import { ordersCol, toObjectId, type OrderDoc } from "@/server/db";
 import type { Order as OrderType } from "@/types";
 
-// ------------------------------------------------------------------
-// Type mapper
-// ------------------------------------------------------------------
 function mapOrder(o: OrderDoc): OrderType {
   return {
     id: o._id.toHexString(),
-    userId: o.userId ? o.userId.toHexString() : undefined,
+    userId: o.userId?.toHexString() ?? null,
+    tableId: o.tableId?.toHexString() ?? null,
     status: o.status as OrderType["status"],
+    items: [],
     subtotal: o.subtotal,
     discount: o.discount,
     total: o.total,
     currency: o.currency,
+    notes: o.notes ?? null,
     deliveryType: o.deliveryType as OrderType["deliveryType"],
     paymentStatus: o.paymentStatus as OrderType["paymentStatus"],
-    gateway: (o.gateway ?? undefined) as OrderType["gateway"] | undefined,
+    gateway: (o.gateway ?? null) as OrderType["gateway"],
     createdAt: o.createdAt.toISOString(),
     updatedAt: o.updatedAt.toISOString(),
   };
 }
 
-// ------------------------------------------------------------------
-// Order methods
-// ------------------------------------------------------------------
 export async function getOrders(): Promise<OrderType[]> {
   const col = await ordersCol();
   const orders = await col.find({}).sort({ createdAt: -1 }).toArray();
@@ -49,7 +41,6 @@ export async function updateOrderStatus(
 ): Promise<OrderType | null> {
   const objectId = toObjectId(id);
   if (!objectId) return null;
-
   const col = await ordersCol();
   const updated = await col.findOneAndUpdate(
     { _id: objectId },
@@ -66,7 +57,6 @@ export async function getOrderStats() {
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ])
     .toArray();
-
   const byStatus = new Map(grouped.map((g) => [g._id, g.count]));
   return {
     pending: byStatus.get("pending") ?? 0,
@@ -80,15 +70,16 @@ export async function getOrderStats() {
 export async function createOrder(input: {
   subtotal: number;
   total: number;
+  tableId?: string | null;
   deliveryType?: string;
   notes?: string | null;
 }): Promise<OrderType> {
   const col = await ordersCol();
   const now = new Date();
-
   const doc: OrderDoc = {
     _id: new ObjectId(),
     userId: null,
+    tableId: input.tableId ? toObjectId(input.tableId) : null,
     status: "pending",
     subtotal: input.subtotal,
     discount: 0,
@@ -101,7 +92,6 @@ export async function createOrder(input: {
     createdAt: now,
     updatedAt: now,
   };
-
   await col.insertOne(doc);
   return mapOrder(doc);
 }

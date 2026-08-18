@@ -21,11 +21,13 @@ try {
 }
 
 const DATABASE_URL =
-  process.env.DATABASE_URL ?? "mongodb://localhost:27017/premium-boilerplate-menu";
+  process.env.DATABASE_URL ??
+  "mongodb://localhost:27017/premium-boilerplate-menu";
 const ADMIN_INITIAL_EMAIL = (
   process.env.ADMIN_INITIAL_EMAIL ?? "admin@premiummenu.test"
 ).toLowerCase();
-const ADMIN_INITIAL_PASSWORD = process.env.ADMIN_INITIAL_PASSWORD ?? "admin1234";
+const ADMIN_INITIAL_PASSWORD =
+  process.env.ADMIN_INITIAL_PASSWORD ?? "admin1234";
 
 function getDatabaseName(url) {
   try {
@@ -52,7 +54,9 @@ function slugify(value) {
 const now = () => new Date();
 
 async function main() {
-  const client = new MongoClient(DATABASE_URL, { serverSelectionTimeoutMS: 5000 });
+  const client = new MongoClient(DATABASE_URL, {
+    serverSelectionTimeoutMS: 5000,
+  });
   await client.connect();
   const db = client.db(getDatabaseName(DATABASE_URL));
 
@@ -61,7 +65,9 @@ async function main() {
   // ── Indexes (PRD §8.4) ──────────────────────────────────────────
   await Promise.all([
     db.collection("users").createIndex({ email: 1 }, { unique: true }),
-    db.collection("users").createIndex({ phone: 1 }, { unique: true, sparse: true }),
+    db
+      .collection("users")
+      .createIndex({ phone: 1 }, { unique: true, sparse: true }),
     db.collection("roles").createIndex({ name: 1 }, { unique: true }),
     db.collection("menu_categories").createIndex({ slug: 1 }, { unique: true }),
     db.collection("menu_items").createIndex({ slug: 1 }, { unique: true }),
@@ -76,14 +82,14 @@ async function main() {
   ]);
   console.log("✓ Indexes ensured");
 
-  // ── Role: admin (RBAC foundation — PRD FR-D04) ──────────────────
+  // ── Role: SuperAdmin (RBAC foundation) ──────────────────────────────
   const roleResult = await db.collection("roles").findOneAndUpdate(
-    { name: "admin" },
+    { name: "SuperAdmin" },
     {
       $setOnInsert: {
         _id: new ObjectId(),
-        name: "admin",
-        description: "Administrator",
+        name: "SuperAdmin",
+        description: "Super Administrator",
         isDefault: true,
         createdAt: now(),
         updatedAt: now(),
@@ -92,7 +98,7 @@ async function main() {
     { upsert: true, returnDocument: "after" },
   );
   const adminRole = roleResult;
-  console.log("✓ Role: admin");
+  console.log("✓ Role: SuperAdmin");
 
   // ── Initial admin user ──────────────────────────────────────────
   const passwordHash = await bcrypt.hash(ADMIN_INITIAL_PASSWORD, 12);
@@ -244,9 +250,24 @@ async function main() {
   const ordersCount = await db.collection("orders").countDocuments();
   if (ordersCount === 0) {
     const demoOrders = [
-      { status: "pending", total: 38000, deliveryType: "dine_in", paymentStatus: "pending" },
-      { status: "processing", total: 110000, deliveryType: "takeaway", paymentStatus: "paid" },
-      { status: "pending", total: 65000, deliveryType: "dine_in", paymentStatus: "pending" },
+      {
+        status: "pending",
+        total: 38000,
+        deliveryType: "dine_in",
+        paymentStatus: "pending",
+      },
+      {
+        status: "processing",
+        total: 110000,
+        deliveryType: "takeaway",
+        paymentStatus: "paid",
+      },
+      {
+        status: "pending",
+        total: 65000,
+        deliveryType: "dine_in",
+        paymentStatus: "pending",
+      },
     ].map((o) => ({
       _id: new ObjectId(),
       userId: null,

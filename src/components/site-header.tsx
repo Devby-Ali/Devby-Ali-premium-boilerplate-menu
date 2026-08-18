@@ -9,9 +9,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const links = [
   { href: "/", label: "خانه" },
+  { href: "/list", label: "منو" },
   { href: "/about", label: "درباره ما" },
-  { href: "/list", label: "فهرست" },
-  { href: "/admin", label: "ادمین" },
 ];
 
 export function SiteHeader() {
@@ -23,16 +22,11 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
         <Link href="/" className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-700 text-sm font-semibold text-white">
-            PM
+            ک
           </div>
-          <div>
-            <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
-              Premium Menu
-            </p>
-            <p className="text-xs text-stone-500 dark:text-stone-400">
-              Restaurant Boilerplate
-            </p>
-          </div>
+          <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+            کافه رستوران
+          </p>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
@@ -55,16 +49,12 @@ export function SiteHeader() {
             className="md:hidden"
             onClick={toggleMobileMenu}
           >
-            {mobileMenuOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </div>
 
-      {mobileMenuOpen ? (
+      {mobileMenuOpen && (
         <div className="border-t border-stone-200 bg-white px-6 py-4 shadow-sm dark:border-stone-800 dark:bg-stone-950 md:hidden">
           <nav className="flex flex-col gap-3">
             {links.map((link) => (
@@ -79,7 +69,7 @@ export function SiteHeader() {
             ))}
           </nav>
         </div>
-      ) : null}
+      )}
     </header>
   );
 }

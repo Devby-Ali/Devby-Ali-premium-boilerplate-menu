@@ -3,17 +3,20 @@
 @layer base {
   /* ── Light Mode ── */
   :root {
-    --background: #f8f4eb;   /* cream base */
+    --background: #f8f4eb;
     --foreground: #221c16;
-    --primary: #2f6b4f;      /* Royal Green */
+    --primary: #2f6b4f;
     --primary-foreground: #f8f4eb;
-    --secondary: #8b233d;    /* Crimson */
+    --secondary: #8b233d;
     --secondary-foreground: #f8f4eb;
-    --accent: #f4e3b2;       /* Cream Accent */
+    --accent: #f4e3b2;
     --accent-foreground: #221c16;
     --muted: #f0ebe0;
     --muted-foreground: #665d52;
     --border: #d6cbb9;
+    --input: #d6cbb9;
+    --ring: #2f6b4f;
+    /* shadcn/ui از این مستقیم استفاده می‌کند */
     --radius: 0.75rem;
   }
 
@@ -21,7 +24,7 @@
   .dark {
     --background: #12110d;
     --foreground: #f7efe2;
-    --primary: #48a373;      /* lighter green for contrast */
+    --primary: #48a373;
     --primary-foreground: #12110d;
     --secondary: #c94968;
     --secondary-foreground: #12110d;
@@ -30,9 +33,10 @@
     --muted: #1e1c18;
     --muted-foreground: #9a8e80;
     --border: #3a342e;
+    --input: #3a342e;
+    --ring: #48a373;
   }
 
-  /* ── Apply base styles ── */
   * {
     @apply border-border;
   }
@@ -41,7 +45,7 @@
   }
 }
 
-/* ── Inject CSS variables as Tailwind color tokens ── */
+/* ── Tailwind v4: CSS vars → utility tokens ── */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -54,7 +58,15 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* rounded-sm / rounded-md / rounded-lg / rounded-xl → بر اساس --radius */
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 0.25rem);
+  --radius-xl: calc(var(--radius) + 0.5rem);
+
   --font-sans: var(--font-vazirmatn-arabic), var(--font-vazirmatn-latin), "Segoe UI", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --radius: var(--radius);
 }

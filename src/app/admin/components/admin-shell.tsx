@@ -12,33 +12,56 @@ import {
 import * as React from "react";
 
 import http from "@/lib/http";
+import { PERMISSIONS } from "@/lib/auth-edge";
 import { useAuthStore } from "@/store/auth-store";
+import type { RoleName, UserSession } from "@/types";
 
 interface AdminShellProps {
   children: React.ReactNode;
+  initialSession: UserSession;
 }
 
-const sections = [
-  { href: "/admin", label: "داشبورد", icon: LayoutDashboard },
-  { href: "/admin/menu", label: "مدیریت منو", icon: List },
-  { href: "/admin/orders", label: "سفارش‌ها", icon: ShoppingBag },
-  { href: "/admin/settings", label: "تنظیمات", icon: Settings },
-  { href: "/admin/users", label: "کاربران", icon: Users },
-];
+const ALL_SECTIONS = [
+  { href: "/admin",          label: "داشبورد",     icon: LayoutDashboard, permission: null },
+  { href: "/admin/menu",     label: "مدیریت منو",  icon: List,            permission: "manageMenu"     },
+  { href: "/admin/orders",   label: "سفارش‌ها",    icon: ShoppingBag,     permission: "viewOrders"    },
+  { href: "/admin/settings", label: "تنظیمات",     icon: Settings,        permission: "manageSettings" },
+  { href: "/admin/users",    label: "کاربران",     icon: Users,           permission: "manageUsers"   },
+] as const;
 
-export function AdminShell({ children }: AdminShellProps) {
+const ROLE_LABELS: Record<RoleName, string> = {
+  SuperAdmin: "مدیر ارشد",
+  Manager:    "مدیر",
+  Staff:      "کارمند",
+};
+
+export function AdminShell({ children, initialSession }: AdminShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
+  const router   = useRouter();
+
+  const storeUser = useAuthStore((s) => s.user);
+  const setUser   = useAuthStore((s) => s.setUser);
+  const logout    = useAuthStore((s) => s.logout);
+
+  // یک‌بار در mount، session سرور را به store تزریق می‌کنیم تا hydration mismatch نداشته باشیم
+  React.useEffect(() => {
+    if (!storeUser) setUser(initialSession);
+  }, []);
+
+  const user = storeUser ?? initialSession;
+  const role = user.role as RoleName;
+
+  const sections = ALL_SECTIONS.filter(({ permission }) => {
+    if (!permission) return true;
+    return (PERMISSIONS[permission] as readonly RoleName[]).includes(role);
+  });
 
   const handleLogout = async () => {
     try {
       await http.delete("/auth/login");
     } catch {
-      // Ignore and continue with client-side cleanup.
+      // ادامه می‌دهیم
     }
-
     logout();
     router.replace("/admin/login");
   };
@@ -56,34 +79,30 @@ export function AdminShell({ children }: AdminShellProps) {
         </div>
 
         <div className="mb-4 rounded-2xl border border-stone-200 bg-stone-50 p-3 text-sm text-stone-600 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-400">
-          <p className="font-medium text-stone-900 dark:text-stone-100">
-            {user?.name ?? "Admin User"}
-          </p>
-          <p className="mt-1 text-xs">
-            {user?.email ?? "admin@premiummenu.test"}
+          <p className="font-medium text-stone-900 dark:text-stone-100">{user.name}</p>
+          <p className="mt-0.5 text-xs">{user.email}</p>
+          <p className="mt-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+            {ROLE_LABELS[role] ?? role}
           </p>
         </div>
 
-        <nav className="space-y-2">
-          {sections.map((section) => {
-            const Icon = section.icon;
+        <nav className="space-y-1">
+          {sections.map(({ href, label, icon: Icon }) => {
             const isActive =
-              section.href === "/admin"
-                ? pathname === section.href
-                : pathname.startsWith(section.href);
+              href === "/admin" ? pathname === href : pathname.startsWith(href);
 
             return (
               <Link
-                key={section.href}
-                href={section.href}
-                className={`flex items-center gap-3 rounded-full px-3 py-3 text-sm font-medium transition ${
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition ${
                   isActive
                     ? "bg-emerald-600 text-white shadow-sm"
                     : "text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
                 }`}
               >
-                <Icon className="h-4 w-4" />
-                {section.label}
+                <Icon className="h-4 w-4 shrink-0" />
+                {label}
               </Link>
             );
           })}
@@ -96,12 +115,6 @@ export function AdminShell({ children }: AdminShellProps) {
         >
           خروج از پنل
         </button>
-
-        <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm leading-7 text-stone-600 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-400">
-          نقش فعلی: Admin
-          <br />
-          حالت MVP آماده برای توسعه RBAC
-        </div>
       </aside>
 
       <section className="flex-1 space-y-6">{children}</section>

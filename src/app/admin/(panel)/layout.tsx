@@ -5,15 +5,10 @@ import { getSessionFromCookie } from "@/lib/auth";
 
 export default async function AdminPanelLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   const session = await getSessionFromCookie();
 
-  if (!session) {
-    redirect("/admin/login");
-  }
+  if (!session) redirect("/admin/login");
 
-  // return <AdminShell initialSession={session}>{children}</AdminShell>;
-  return <AdminShell>{children}</AdminShell>;
+  return <AdminShell initialSession={session}>{children}</AdminShell>;
 }

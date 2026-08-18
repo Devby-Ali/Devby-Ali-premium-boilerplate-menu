@@ -1,27 +1,13 @@
-﻿"use client";
-
+﻿// src/app/admin/(panel)/page.tsx
 import Link from "next/link";
-import * as React from "react";
 import { ArrowUpRight, Sparkles, ShoppingBag, Users2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getAllMenuItems, getCategories } from "@/lib/menu-service";
+import { getOrderStats } from "@/lib/order-service";
 
-interface MenuItemData {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  featured: boolean;
-}
-
-interface OrderStats {
-  pending: number;
-  processing: number;
-  ready: number;
-  delivered: number;
-  cancelled: number;
-}
+// ─── helpers ─────────────────────────────────────────────────────────────────
 
 function formatPrice(value: number) {
   return `\u200E${value.toLocaleString("fa-IR")} تومان`;
@@ -50,62 +36,40 @@ const quickLinks = [
   },
 ];
 
-export default function AdminPage() {
-  const [itemCount, setItemCount] = React.useState(0);
-  const [catCount, setCatCount] = React.useState(0);
-  const [orderCount, setOrderCount] = React.useState(0);
-  const [featuredItems, setFeaturedItems] = React.useState<MenuItemData[]>([]);
-  const [loading, setLoading] = React.useState(true);
+// ─── page (Server Component) ──────────────────────────────────────────────────
+// داده‌ها مستقیماً از Service Layer خوانده می‌شوند — بدون HTTP round-trip
 
-  React.useEffect(() => {
-    const load = async () => {
-      try {
-        const [menuRes, orderStatsRes] = await Promise.all([
-          fetch("/api/admin/menu", { credentials: "include" }),
-          fetch("/api/admin/orders?stats=true", { credentials: "include" }),
-        ]);
+export default async function AdminPage() {
+  // هر سه درخواست موازی اجرا می‌شوند
+  const [items, categories, orderStats] = await Promise.allSettled([
+    getAllMenuItems(),
+    getCategories(),
+    getOrderStats(),
+  ]);
 
-        if (menuRes.ok) {
-          const payload = await menuRes.json();
-          if (payload?.data) {
-            const items = payload.data as MenuItemData[];
-            setItemCount(items.length);
-            setFeaturedItems(
-              items.filter((i: MenuItemData) => i.featured).slice(0, 2),
-            );
-          }
-          if (payload?.categories) {
-            setCatCount((payload.categories as any[]).length);
-          }
-        }
+  // مقادیر امن با fallback به صفر در صورت خطا
+  const allItems    = items.status      === "fulfilled" ? items.value      : [];
+  const allCats     = categories.status === "fulfilled" ? categories.value : [];
+  const stats       = orderStats.status === "fulfilled" ? orderStats.value : null;
 
-        if (orderStatsRes.ok) {
-          const payload = await orderStatsRes.json();
-          if (payload?.data) {
-            const s = payload.data as OrderStats;
-            setOrderCount(
-              s.pending + s.processing + s.ready + s.delivered + s.cancelled,
-            );
-          }
-        }
-      } catch {
-        // silent fail — show zeros
-      } finally {
-        setLoading(false);
-      }
-    };
+  const itemCount    = allItems.length;
+  const catCount     = allCats.length;
+  const orderCount   = stats
+    ? stats.pending + stats.processing + stats.ready + stats.delivered + stats.cancelled
+    : 0;
 
-    void load();
-  }, []);
+  // آیتم‌های ویژه — حداکثر ۲ آیتم
+  const featuredItems = allItems.filter((i) => i.isFeatured).slice(0, 2);
 
-  const stats = [
-    { label: "آیتم‌های منو", value: String(itemCount) },
-    { label: "دسته‌بندی‌های فعال", value: String(catCount) },
-    { label: "کل سفارش‌ها", value: String(orderCount) },
+  const dashboardStats = [
+    { label: "آیتم‌های منو",        value: itemCount  },
+    { label: "دسته‌بندی‌های فعال",  value: catCount   },
+    { label: "کل سفارش‌ها",         value: orderCount },
   ];
 
   return (
     <div className="space-y-6">
+      {/* ─── Hero ─────────────────────────────────────────────────────────── */}
       <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80 lg:p-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -126,48 +90,23 @@ export default function AdminPage() {
         </div>
       </section>
 
+      {/* ─── Stats ────────────────────────────────────────────────────────── */}
       <section className="grid gap-6 md:grid-cols-3">
-        {stats.map((stat) => (
+        {dashboardStats.map((stat) => (
           <Card key={stat.label}>
             <CardHeader>
               <CardTitle>{stat.label}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-semibold text-emerald-700 dark:text-emerald-400">
-                {loading ? "..." : stat.value}
+              <p className="text-3xl font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                {stat.value.toLocaleString("fa-IR")}
               </p>
             </CardContent>
           </Card>
         ))}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>امکانات پنل</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm leading-7 text-stone-600 dark:text-stone-400">
-            <p>• مدیریت دسته‌بندی‌ها و آیتم‌های منو با فرم‌های سریع</p>
-            <p>• نمایش وضعیت سفارش‌ها و دسترسی‌های کاربر</p>
-            <p>• تنظیمات برند و متادیتا برای تجربه حرفه‌ای‌تر</p>
-            <p>
-              • زیرساخت آماده برای سفارش، پرداخت و کنترل دسترسی در مرحله بعد
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>وضعیت احراز هویت</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm leading-7 text-stone-600 dark:text-stone-400">
-            <p>حالت فعلی: آماده برای ورود با ایمیل و رمز عبور</p>
-            <p>نقش MVP: Admin</p>
-            <p>آماده برای توسعه به RBAC حرفه‌ای در مراحل بعدی</p>
-          </CardContent>
-        </Card>
-      </section>
-
+      {/* ─── Featured + Quick Actions ─────────────────────────────────────── */}
       <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <Card>
           <CardHeader>
@@ -182,20 +121,22 @@ export default function AdminPage() {
                 >
                   <div>
                     <p className="font-semibold text-stone-900 dark:text-stone-100">
-                      {item.title}
+                      {item.name}
                     </p>
-                    <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-                      {item.description}
-                    </p>
+                    {item.description && (
+                      <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                        {item.description}
+                      </p>
+                    )}
                   </div>
-                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                  <span className="shrink-0 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
                     {formatPrice(item.price)}
                   </span>
                 </div>
               ))
             ) : (
               <p className="text-sm text-stone-500">
-                {loading ? "در حال بارگذاری..." : "هیچ آیتم ویژه‌ای یافت نشد."}
+                هیچ آیتم ویژه‌ای یافت نشد.
               </p>
             )}
           </CardContent>
@@ -205,30 +146,34 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle>اقدامات سریع</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm leading-7 text-stone-600 dark:text-stone-400">
-            <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50">
-              <Sparkles className="h-4 w-4 text-emerald-600" />
-              <span>به‌روزرسانی آیتم‌های ویژه منو</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50">
-              <ShoppingBag className="h-4 w-4 text-emerald-600" />
-              <span>بررسی سفارش‌های در انتظار</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50">
-              <Users2 className="h-4 w-4 text-emerald-600" />
-              <span>مشاهده دسترسی‌های کاربر</span>
-            </div>
+          <CardContent className="space-y-3">
+            {(
+              [
+                { icon: Sparkles,   label: "به‌روزرسانی آیتم‌های ویژه منو" },
+                { icon: ShoppingBag, label: "بررسی سفارش‌های در انتظار"    },
+                { icon: Users2,      label: "مشاهده دسترسی‌های کاربر"       },
+              ] as const
+            ).map(({ icon: Icon, label }) => (
+              <div
+                key={label}
+                className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm leading-7 text-stone-600 dark:border-stone-800 dark:bg-stone-950/50 dark:text-stone-400"
+              >
+                <Icon className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span>{label}</span>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </section>
 
+      {/* ─── Quick Links ──────────────────────────────────────────────────── */}
       <section className="grid gap-6 md:grid-cols-2">
         {quickLinks.map((link) => (
           <Link key={link.href} href={link.href} className="block">
             <Card className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
               <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <CardTitle>{link.title}</CardTitle>
-                <ArrowUpRight className="h-4 w-4 text-stone-500" />
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-stone-500" />
               </CardHeader>
               <CardContent className="text-sm leading-7 text-stone-600 dark:text-stone-400">
                 {link.description}

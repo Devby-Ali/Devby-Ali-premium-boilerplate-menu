@@ -20,7 +20,6 @@
 ./prisma/schema.prisma
 ./prisma.config.ts
 ./project-structure.txt
-./proxy.ts
 ./public
 ./public/file.svg
 ./public/globe.svg
@@ -44,6 +43,10 @@
 ./src/app/(public)/product
 ./src/app/(public)/product/[slug]
 ./src/app/(public)/product/[slug]/page.tsx
+./src/app/(public)/t
+./src/app/(public)/t/[token]
+./src/app/(public)/t/[token]/menu-view.tsx
+./src/app/(public)/t/[token]/page.tsx
 ./src/app/admin
 ./src/app/admin/(panel)
 ./src/app/admin/(panel)/layout.tsx
@@ -77,9 +80,14 @@
 ./src/app/api/admin/orders/route.ts
 ./src/app/api/admin/settings
 ./src/app/api/admin/settings/route.ts
+./src/app/api/admin/waiter-calls
+./src/app/api/admin/waiter-calls/stream
+./src/app/api/admin/waiter-calls/stream/route.ts
 ./src/app/api/auth
 ./src/app/api/auth/login
 ./src/app/api/auth/login/route.ts
+./src/app/api/auth/logout
+./src/app/api/auth/logout/route.ts
 ./src/app/api/auth/me
 ./src/app/api/auth/me/route.ts
 ./src/app/api/health
@@ -91,6 +99,8 @@
 ./src/app/api/menu/route.ts
 ./src/app/api/menu/[slug]
 ./src/app/api/menu/[slug]/route.ts
+./src/app/api/waiter-call
+./src/app/api/waiter-call/route.ts
 ./src/app/favicon.ico
 ./src/app/fonts
 ./src/app/fonts/vazirmatn-arabic.woff2
@@ -109,10 +119,12 @@
 ./src/components/ui/input.tsx
 ./src/components/ui/label.tsx
 ./src/components/ui/section-heading.tsx
+./src/components/waiter-call-button.tsx
 ./src/data
 ./src/data/menu.ts
 ./src/lib
 ./src/lib/api-response.ts
+./src/lib/auth-edge.ts
 ./src/lib/auth.ts
 ./src/lib/env.ts
 ./src/lib/http.ts
@@ -137,3 +149,4 @@
 ./uploads/2026-08
 ./uploads/2026-08/328acb0c7272e5e3b994940dbc13e592.png
 ./uploads/2026-08/7f0fd93a895bd66b3ea735f1daae061d.png
+./uploads/2026-08/91c1b56c826fa0a9f18d195fbddc41da.jpg

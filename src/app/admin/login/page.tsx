@@ -16,20 +16,25 @@ import type { UserSession } from "@/types";
 
 const loginSchema = z.object({
   email: z.string().email("ایمیل معتبر وارد کنید"),
-  password: z.string().min(6, "رمز عبور حداقل 6 کاراکتر باشد"),
+  password: z.string().min(6, "رمز عبور حداقل ۶ کاراکتر باشد"),
 });
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+  const onSubmit = async (values: LoginFormValues) => {
     setSubmitError(null);
 
     try {
@@ -37,9 +42,9 @@ export default function AdminLoginPage() {
         message?: string;
         user?: UserSession;
       }>("/auth/login", values);
-      const payload = response as { user?: UserSession } | null;
-      const user = payload?.user ?? null;
-      setUser(user ?? null);
+
+      const user = (response as { user?: UserSession } | null)?.user ?? null;
+      setUser(user);
       router.replace("/admin");
     } catch {
       setSubmitError("ایمیل یا رمز عبور نادرست است. لطفاً دوباره تلاش کنید.");
@@ -59,8 +64,8 @@ export default function AdminLoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@premiummenu.test"
-                defaultValue="admin@premiummenu.test"
+                autoComplete="email"
+                placeholder="admin@example.com"
                 {...register("email")}
               />
               {errors.email ? (
@@ -73,8 +78,8 @@ export default function AdminLoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="admin1234"
-                defaultValue="admin1234"
+                autoComplete="current-password"
+                placeholder="••••••••"
                 {...register("password")}
               />
               {errors.password ? (
@@ -85,7 +90,10 @@ export default function AdminLoginPage() {
             </div>
 
             {submitError ? (
-              <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <p
+                role="alert"
+                className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400"
+              >
                 {submitError}
               </p>
             ) : null}
