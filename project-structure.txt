@@ -1,6 +1,7 @@
 .
 ./.agent.md
 ./.cursor
+./.cursor/settings.json
 ./.env
 ./.env.example
 ./.github
@@ -57,6 +58,8 @@
 ./src/app/admin/(panel)/page.tsx
 ./src/app/admin/(panel)/settings
 ./src/app/admin/(panel)/settings/page.tsx
+./src/app/admin/(panel)/tables
+./src/app/admin/(panel)/tables/page.tsx
 ./src/app/admin/(panel)/users
 ./src/app/admin/(panel)/users/page.tsx
 ./src/app/admin/components
@@ -80,6 +83,8 @@
 ./src/app/api/admin/orders/route.ts
 ./src/app/api/admin/settings
 ./src/app/api/admin/settings/route.ts
+./src/app/api/admin/tables
+./src/app/api/admin/tables/route.ts
 ./src/app/api/admin/waiter-calls
 ./src/app/api/admin/waiter-calls/stream
 ./src/app/api/admin/waiter-calls/stream/route.ts
@@ -140,6 +145,7 @@
 ./src/server/media-storage.ts
 ./src/store
 ./src/store/auth-store.ts
+./src/store/table-store.ts
 ./src/store/ui-store.ts
 ./src/types
 ./src/types/index.ts
