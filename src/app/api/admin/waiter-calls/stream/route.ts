@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
           }
 
           lastPoll = now;
-        } catch (err) {
+        } catch {
           send("error", { message: "خطا در دریافت داده" });
         }
 

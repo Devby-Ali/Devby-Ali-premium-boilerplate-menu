@@ -58,7 +58,8 @@ interface QrDialogProps {
 }
 
 function QrDialog({ table, baseUrl, onClose }: QrDialogProps) {
-  const qrUrl = `${baseUrl}/menu?table=${table.qrToken}`;
+  // مسیر رسمی منوی QR — مشتری با اسکن کد وارد /t/[token] می‌شود
+  const qrUrl = `${baseUrl}/t/${table.qrToken}`;
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
   // رندر QR Code روی canvas به محض باز شدن dialog
@@ -193,7 +194,9 @@ export default function AdminTablesPage() {
   }, [setTables]);
 
   React.useEffect(() => {
-    void loadData();
+    void (async () => {
+      await loadData();
+    })();
   }, [loadData]);
 
   // ─── reset form ───────────────────────────────────────────────────────────

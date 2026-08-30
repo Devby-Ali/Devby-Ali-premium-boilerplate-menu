@@ -52,12 +52,22 @@ export async function encodeSession(session: UserSession): Promise<string> {
   return `${payload}.${signature}`;
 }
 
+// مقایسه زمان‌ثابت برای جلوگیری از timing attack روی امضای کوکی
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
 export async function decodeSession(value: string | undefined): Promise<UserSession | null> {
   if (!value) return null;
   const [payload, signature] = value.split(".");
   if (!payload || !signature) return null;
   const expected = await hmacSha256(payload, SECRET);
-  if (expected !== signature) return null;
+  if (!timingSafeEqual(expected, signature)) return null;
   try {
     return JSON.parse(fromBase64Url(payload)) as UserSession;
   } catch {

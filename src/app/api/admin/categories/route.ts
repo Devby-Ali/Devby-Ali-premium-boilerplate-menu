@@ -2,7 +2,6 @@
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/auth";
 import {
-  getCategories,
   getCategoriesWithCount,
   createCategory,
   updateCategory,

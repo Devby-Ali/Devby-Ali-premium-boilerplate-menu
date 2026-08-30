@@ -77,8 +77,6 @@ export default function AdminMenuPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const loadItems = React.useCallback(async () => {
-    setLoading(true);
-    setFeedback(null);
     try {
       const response = await fetch("/api/admin/menu");
       if (response.ok) {
@@ -101,7 +99,10 @@ export default function AdminMenuPage() {
   }, []);
 
   React.useEffect(() => {
-    void loadItems();
+    void (async () => {
+      setLoading(true);
+      await loadItems();
+    })();
   }, [loadItems]);
 
   const filteredItems = React.useMemo(() => {

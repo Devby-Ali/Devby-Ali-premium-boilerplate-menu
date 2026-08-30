@@ -50,15 +50,11 @@ export default function AdminSettingsPage() {
               contactEmail: payload.data.contactEmail ?? prev.contactEmail,
               contactPhone: payload.data.contactPhone ?? prev.contactPhone,
               address: payload.data.address ?? prev.address,
-              // tagline و heroTitle و heroSubtitle در settings-service نیستند
-              // بنابراین از مقادیر پیش‌فرض استفاده می‌کنیم
               tagline: prev.tagline,
               heroTitle: prev.heroTitle,
               heroSubtitle: prev.heroSubtitle,
             }));
           }
-        } else {
-          // fallback: از مقادیر پیش‌فرض استفاده کن
         }
       } catch {
         // network error — use defaults
@@ -97,8 +93,11 @@ export default function AdminSettingsPage() {
 
       setSavedMessage("تنظیمات برند با موفقیت ذخیره شد.");
       setTimeout(() => setSavedMessage(null), 4000);
-    } catch (err: any) {
-      setErrorMessage(err?.message ?? "خطا در ذخیره تنظیمات");
+    } catch (err) {
+      // اصلاح شده: جلوگیری از خطای TypeScript در strict mode
+      const message =
+        err instanceof Error ? err.message : "خطا در ذخیره تنظیمات";
+      setErrorMessage(message);
     } finally {
       setSaving(false);
     }

@@ -8,12 +8,16 @@ import { cn } from "@/lib/utils";
 
 /**
  * هوک سفارشی برای تشخیص Mount شدن کامپوننت در کلاینت
- * جایگزین `mounted` از next-themes – بدون نیاز به به‌روزرسانی پکیج
+ * به‌جای setState در بدنه اثر (که React Compiler ممنوع می‌داند) از
+ * useSyncExternalStore استفاده می‌کنیم — subscribe اضافه‌ای لازم نیست چون
+ * نتیجه همیشه true است و فقط برای تفکیک سرور/کلاینت به کار می‌رود.
  */
 function useMounted() {
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
-  return mounted;
+  return React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 }
 
 export function ThemeToggle({ className }: { className?: string }) {

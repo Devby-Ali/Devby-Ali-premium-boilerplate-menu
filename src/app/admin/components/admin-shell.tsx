@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BellRing,
   LayoutDashboard,
   List,
   Settings,
@@ -22,11 +23,12 @@ interface AdminShellProps {
 }
 
 const ALL_SECTIONS = [
-  { href: "/admin",          label: "داشبورد",     icon: LayoutDashboard, permission: null },
-  { href: "/admin/menu",     label: "مدیریت منو",  icon: List,            permission: "manageMenu"     },
-  { href: "/admin/orders",   label: "سفارش‌ها",    icon: ShoppingBag,     permission: "viewOrders"    },
-  { href: "/admin/settings", label: "تنظیمات",     icon: Settings,        permission: "manageSettings" },
-  { href: "/admin/users",    label: "کاربران",     icon: Users,           permission: "manageUsers"   },
+  { href: "/admin",              label: "داشبورد",       icon: LayoutDashboard, permission: null              },
+  { href: "/admin/menu",         label: "مدیریت منو",    icon: List,            permission: "manageMenu"      },
+  { href: "/admin/orders",       label: "سفارش‌ها",      icon: ShoppingBag,     permission: "viewOrders"      },
+  { href: "/admin/waiter-calls", label: "فراخوان گارسون", icon: BellRing,        permission: "handleWaiterCall"},
+  { href: "/admin/settings",     label: "تنظیمات",       icon: Settings,        permission: "manageSettings"  },
+  { href: "/admin/users",        label: "کاربران",       icon: Users,           permission: "manageUsers"     },
 ] as const;
 
 const ROLE_LABELS: Record<RoleName, string> = {
@@ -46,7 +48,7 @@ export function AdminShell({ children, initialSession }: AdminShellProps) {
   // یک‌بار در mount، session سرور را به store تزریق می‌کنیم تا hydration mismatch نداشته باشیم
   React.useEffect(() => {
     if (!storeUser) setUser(initialSession);
-  }, []);
+  }, [storeUser, setUser, initialSession]);
 
   const user = storeUser ?? initialSession;
   const role = user.role as RoleName;

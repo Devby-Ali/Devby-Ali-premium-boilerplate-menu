@@ -62,6 +62,8 @@
 ./src/app/admin/(panel)/tables/page.tsx
 ./src/app/admin/(panel)/users
 ./src/app/admin/(panel)/users/page.tsx
+./src/app/admin/(panel)/waiter-calls
+./src/app/admin/(panel)/waiter-calls/page.tsx
 ./src/app/admin/components
 ./src/app/admin/components/admin-shell.tsx
 ./src/app/admin/error.tsx
@@ -85,7 +87,10 @@
 ./src/app/api/admin/settings/route.ts
 ./src/app/api/admin/tables
 ./src/app/api/admin/tables/route.ts
+./src/app/api/admin/users
+./src/app/api/admin/users/route.ts
 ./src/app/api/admin/waiter-calls
+./src/app/api/admin/waiter-calls/route.ts
 ./src/app/api/admin/waiter-calls/stream
 ./src/app/api/admin/waiter-calls/stream/route.ts
 ./src/app/api/auth
@@ -153,6 +158,5 @@
 ./tsconfig.tsbuildinfo
 ./uploads
 ./uploads/2026-08
-./uploads/2026-08/328acb0c7272e5e3b994940dbc13e592.png
-./uploads/2026-08/7f0fd93a895bd66b3ea735f1daae061d.png
-./uploads/2026-08/91c1b56c826fa0a9f18d195fbddc41da.jpg
+./uploads/2026-08/1bf7e28a3fc3fa9846d487d5d6144edb.jpg
+./uploads/2026-08/2cca0897eadb589557fa8b271e2911ef.jpg

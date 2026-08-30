@@ -94,7 +94,9 @@ export default function AdminOrdersPage() {
   }, []);
 
   React.useEffect(() => {
-    void loadData();
+    void (async () => {
+      await loadData();
+    })();
   }, [loadData]);
 
   const filteredOrders = React.useMemo(() => {
