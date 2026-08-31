@@ -69,6 +69,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = React.useState(true);
   const [updating, setUpdating] = React.useState<string | null>(null);
   const [feedback, setFeedback] = React.useState<string | null>(null);
+  const [live, setLive] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -98,6 +99,22 @@ export default function AdminOrdersPage() {
       await loadData();
     })();
   }, [loadData]);
+
+  React.useEffect(() => {
+    const source = new EventSource("/api/admin/orders/stream");
+    source.addEventListener("connected", () => setLive(true));
+    source.addEventListener("orders", (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent<string>).data) as OrderItem[];
+        setOrders(payload);
+        setLive(true);
+      } catch {
+        setLive(false);
+      }
+    });
+    source.addEventListener("error", () => setLive(false));
+    return () => source.close();
+  }, []);
 
   const filteredOrders = React.useMemo(() => {
     if (filter === "all") return orders;
@@ -145,6 +162,9 @@ export default function AdminOrdersPage() {
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600 dark:text-stone-400">
           وضعیت سفارش‌ها را در یک تجربه‌ی مدیریتی ساده و قابل‌پیگیری دنبال کنید.
+        </p>
+        <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">
+          وضعیت اتصال لحظه‌ای: {live ? "فعال" : "در حال اتصال"}
         </p>
       </section>
 

@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
     "db:seed": "node scripts/seed.mjs",
     "typecheck": "tsc --noEmit"
   },

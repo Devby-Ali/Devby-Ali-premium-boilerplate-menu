@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BellRing,
+  CalendarCheck2,
+  BarChart3,
   LayoutDashboard,
   List,
   Settings,
@@ -27,6 +29,8 @@ const ALL_SECTIONS = [
   { href: "/admin/menu",         label: "مدیریت منو",    icon: List,            permission: "manageMenu"      },
   { href: "/admin/orders",       label: "سفارش‌ها",      icon: ShoppingBag,     permission: "viewOrders"      },
   { href: "/admin/waiter-calls", label: "فراخوان گارسون", icon: BellRing,        permission: "handleWaiterCall"},
+  { href: "/admin/reservations", label: "رزروها",          icon: CalendarCheck2,  permission: "manageReservations"},
+  { href: "/admin/reports",      label: "گزارش‌ها",        icon: BarChart3,       permission: "viewReports" },
   { href: "/admin/settings",     label: "تنظیمات",       icon: Settings,        permission: "manageSettings"  },
   { href: "/admin/users",        label: "کاربران",       icon: Users,           permission: "manageUsers"     },
 ] as const;

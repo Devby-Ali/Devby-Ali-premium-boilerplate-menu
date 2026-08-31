@@ -175,6 +175,28 @@ export interface SettingDoc {
   updatedAt: Date;
 }
 
+export interface PurchaseDoc {
+  _id: ObjectId;
+  title: string;
+  amount: number;
+  currency: string;
+  purchasedAt: Date;
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ExpenseDoc {
+  _id: ObjectId;
+  title: string;
+  amount: number;
+  currency: string;
+  spentAt: Date;
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface AuditLogDoc {
   _id: ObjectId;
   action: string;
@@ -263,6 +285,8 @@ async function ensureIndexes(db: Db): Promise<void> {
 
     // Cart — @@index(userId)
     db.collection("carts").createIndex({ userId: 1 }),
+    db.collection("purchases").createIndex({ purchasedAt: 1 }),
+    db.collection("expenses").createIndex({ spentAt: 1 }),
 
     // AuditLog — بدون ایندکس صریح در Schema؛ برای گزارش‌گیری اضافه شده
     db.collection("audit_logs").createIndex({ actorId: 1 }),
@@ -322,6 +346,12 @@ export async function mediaAssetsCol(): Promise<Collection<MediaAssetDoc>> {
 }
 export async function settingsCol(): Promise<Collection<SettingDoc>> {
   return (await getDb()).collection<SettingDoc>("settings");
+}
+export async function purchasesCol(): Promise<Collection<PurchaseDoc>> {
+  return (await getDb()).collection<PurchaseDoc>("purchases");
+}
+export async function expensesCol(): Promise<Collection<ExpenseDoc>> {
+  return (await getDb()).collection<ExpenseDoc>("expenses");
 }
 export async function auditLogsCol(): Promise<Collection<AuditLogDoc>> {
   return (await getDb()).collection<AuditLogDoc>("audit_logs");
