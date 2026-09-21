@@ -1,16 +1,10 @@
 // src/types/index.ts
+// قرارداد دامنه — هم‌راستا با prisma/schema.prisma (مقادیر enum عین Schema)
 
 // ─────────────────────────────────────────────
 //  RBAC
 // ─────────────────────────────────────────────
 export type RoleName = "SuperAdmin" | "Manager" | "Staff";
-
-export interface Role {
-  id: string;
-  name: RoleName;
-  description?: string | null;
-  isDefault: boolean;
-}
 
 // ─────────────────────────────────────────────
 //  User
@@ -20,20 +14,18 @@ export interface User {
   name: string;
   email: string;
   phone?: string | null;
-  roleId?: string | null;
-  role?: Role;
+  role: RoleName;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-// داده‌ای که در کوکی session ذخیره می‌شود
+/** داده‌ای که در کوکی نشست HMAC ذخیره می‌شود */
 export interface UserSession {
   id: string;
   name: string;
   email: string;
   role: RoleName;
-  roleId: string;
 }
 
 // ─────────────────────────────────────────────
@@ -47,9 +39,9 @@ export interface MenuCategory {
   parentId?: string | null;
   isActive: boolean;
   sortOrder: number;
-  scheduleStart?: string | null; // ISO datetime
-  scheduleEnd?: string | null;
-  scheduleDays: number[];        // 0=شنبه … 6=جمعه
+  scheduledFrom?: string | null;
+  scheduledTo?: string | null;
+  scheduleDays: number[];
   items?: MenuItem[];
   createdAt: string;
   updatedAt: string;
@@ -60,17 +52,17 @@ export interface MenuItem {
   name: string;
   slug: string;
   description?: string | null;
+  /** قیمت به ریال (IRR) */
   price: number;
   currency: string;
   imageUrl?: string | null;
   categoryId: string;
   category?: MenuCategory;
+  inStock: boolean;
   isFeatured: boolean;
   isActive: boolean;
   preparationTime?: number | null;
   tags: string[];
-  stockCount?: number | null; // null = نامحدود
-  isUnlimited: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,7 +73,8 @@ export interface MenuItem {
 export interface Table {
   id: string;
   number: number;
-  qrToken: string; // UUID ثابت — پایه QR Code هر میز
+  /** UUID v4 ثابت — پایه‌ی مسیر /t/[token] */
+  token: string;
   capacity: number;
   isActive: boolean;
   createdAt: string;
@@ -91,7 +84,7 @@ export interface Table {
 // ─────────────────────────────────────────────
 //  Waiter Call
 // ─────────────────────────────────────────────
-export type WaiterCallStatus = "pending" | "acknowledged" | "resolved";
+export type WaiterCallStatus = "PENDING" | "ACKNOWLEDGED" | "RESOLVED";
 
 export interface WaiterCall {
   id: string;
@@ -106,7 +99,13 @@ export interface WaiterCall {
 // ─────────────────────────────────────────────
 //  Reservation
 // ─────────────────────────────────────────────
-export type ReservationStatus = "pending" | "confirmed" | "cancelled" | "completed";
+export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+
+export interface ReservationSlotConfig {
+  startHour: number;
+  endHour: number;
+  isActive: boolean;
+}
 
 export interface Reservation {
   id: string;
@@ -115,7 +114,7 @@ export interface Reservation {
   guestName: string;
   guestPhone: string;
   guestCount: number;
-  startTime: string; // ISO datetime
+  startTime: string;
   endTime: string;
   status: ReservationStatus;
   notes?: string | null;
@@ -126,18 +125,24 @@ export interface Reservation {
 // ─────────────────────────────────────────────
 //  Order & OrderItem
 // ─────────────────────────────────────────────
-export type OrderStatus = "pending" | "processing" | "ready" | "delivered" | "cancelled";
-export type PaymentStatus = "pending" | "paid" | "failed";
-export type DeliveryType = "dine_in" | "takeaway" | "delivery";
-export type GatewayProvider = "zarinpal" | "idpay" | "zibal";
+export type OrderStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "READY"
+  | "DELIVERED"
+  | "CANCELLED";
+
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+export type DeliveryType = "DINE_IN" | "TAKEAWAY" | "DELIVERY";
 
 export interface OrderItem {
   id: string;
   orderId: string;
   menuItemId: string;
   menuItem?: Pick<MenuItem, "id" | "name" | "imageUrl">;
-  name: string;    // snapshot نام در زمان سفارش
-  price: number;   // snapshot قیمت در زمان سفارش
+  name: string;
+  /** snapshot قیمت به ریال */
+  price: number;
   quantity: number;
   currency: string;
   createdAt: string;
@@ -157,48 +162,47 @@ export interface Order {
   currency: string;
   notes?: string | null;
   deliveryType: DeliveryType;
-  paymentStatus: PaymentStatus;
-  gateway?: GatewayProvider | null;
   payments?: Payment[];
   createdAt: string;
   updatedAt: string;
 }
 
 // ─────────────────────────────────────────────
-//  Payment (Shaparak-ready)
+//  Payment (آماده‌ی زرین‌پال / شاپرک — بدون منطق فعال در MVP)
 // ─────────────────────────────────────────────
-export type PaymentProviderStatus = "pending" | "successful" | "failed";
-
 export interface Payment {
   id: string;
   orderId: string;
-  provider: GatewayProvider;
+  provider: string;
   amount: number;
   currency: string;
-  status: PaymentProviderStatus;
-  authority?: string | null;  // کد یکتای شاپرک
-  refId?: string | null;      // شماره پیگیری موفق
-  gatewayStatus?: string | null;
-  callbackUrl?: string | null;
+  authority: string;
+  refId?: string | null;
+  status: PaymentStatus;
   createdAt: string;
   updatedAt: string;
 }
 
 // ─────────────────────────────────────────────
-//  Cart (فاز آینده)
+//  Cart (فاز آینده — فقط ساختار داده)
 // ─────────────────────────────────────────────
+export type CartStatus = "ACTIVE" | "ABANDONED" | "CONVERTED";
+
 export interface CartItem {
+  id: string;
+  cartId: string;
   menuItemId: string;
   name: string;
   price: number;
   quantity: number;
+  currency: string;
+  createdAt: string;
 }
-
-export type CartStatus = "active" | "abandoned" | "converted";
 
 export interface Cart {
   id: string;
   userId?: string | null;
+  tableId?: string | null;
   status: CartStatus;
   items: CartItem[];
   createdAt: string;
@@ -219,6 +223,7 @@ export interface SiteSettings {
   contactPhone?: string | null;
   contactEmail?: string | null;
   address?: string | null;
+  reservationSlots: ReservationSlotConfig[];
 }
 
 // ─────────────────────────────────────────────

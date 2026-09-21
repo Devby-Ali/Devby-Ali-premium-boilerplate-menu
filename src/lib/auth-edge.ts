@@ -6,6 +6,12 @@ import type { RoleName, UserSession } from "@/types";
 export const SESSION_COOKIE_NAME = "pm_session";
 const SECRET = env.JWT_SECRET;
 
+// طول عمر نشست — هم‌راستا با maxAge کوکی در setSessionCookie (۷ روز)
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
+
+/** payload داخلی کوکی: علاوه بر UserSession، زمان انقضا هم امضا می‌شود */
+type SessionPayload = UserSession & { exp: number };
+
 export const PERMISSIONS = {
   manageUsers:        ["SuperAdmin"],
   manageSettings:     ["SuperAdmin"],
@@ -47,9 +53,13 @@ async function hmacSha256(message: string, secret: string): Promise<string> {
 }
 
 export async function encodeSession(session: UserSession): Promise<string> {
-  const payload = toBase64Url(JSON.stringify(session));
-  const signature = await hmacSha256(payload, SECRET);
-  return `${payload}.${signature}`;
+  const payload: SessionPayload = {
+    ...session,
+    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+  };
+  const encoded = toBase64Url(JSON.stringify(payload));
+  const signature = await hmacSha256(encoded, SECRET);
+  return `${encoded}.${signature}`;
 }
 
 // مقایسه زمان‌ثابت برای جلوگیری از timing attack روی امضای کوکی
@@ -69,7 +79,21 @@ export async function decodeSession(value: string | undefined): Promise<UserSess
   const expected = await hmacSha256(payload, SECRET);
   if (!timingSafeEqual(expected, signature)) return null;
   try {
-    return JSON.parse(fromBase64Url(payload)) as UserSession;
+    const parsed = JSON.parse(fromBase64Url(payload)) as SessionPayload;
+    // نشست بدون exp یا منقضی‌شده معتبر نیست — کاربر باید دوباره وارد شود
+    if (
+      typeof parsed.exp !== "number" ||
+      parsed.exp <= Math.floor(Date.now() / 1000)
+    ) {
+      return null;
+    }
+    const session: UserSession = {
+      id: parsed.id,
+      name: parsed.name,
+      email: parsed.email,
+      role: parsed.role,
+    };
+    return session;
   } catch {
     return null;
   }

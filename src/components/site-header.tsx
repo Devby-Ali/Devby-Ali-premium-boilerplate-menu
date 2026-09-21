@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const links = [
   { href: "/", label: "خانه" },
   { href: "/list", label: "منو" },
+  { href: "/reservation", label: "رزرو میز" },
   { href: "/about", label: "درباره ما" },
 ];
 
@@ -49,7 +50,11 @@ export function SiteHeader() {
             className="md:hidden"
             onClick={toggleMobileMenu}
           >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </Button>
         </div>
       </div>

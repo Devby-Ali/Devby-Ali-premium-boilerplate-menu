@@ -15,7 +15,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { mkdir, writeFile, readFile } from "node:fs/promises";
-import path from "node:path";
 import crypto from "node:crypto";
 
 export interface StoredMedia {
@@ -59,7 +58,10 @@ function sniffMatches(buffer: Buffer, mimeType: string): boolean {
       return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
     case "image/png":
       return (
-        buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47
+        buffer[0] === 0x89 &&
+        buffer[1] === 0x50 &&
+        buffer[2] === 0x4e &&
+        buffer[3] === 0x47
       );
     case "image/gif":
       return buffer.subarray(0, 4).toString("ascii") === "GIF8";
@@ -83,7 +85,10 @@ export function validateUpload(
   mimeType: string,
 ): { ok: true } | { ok: false; error: string } {
   if (!ALLOWED_MIME_TYPES[mimeType]) {
-    return { ok: false, error: "فرمت تصویر مجاز نیست (فقط jpg، png، webp، avif، gif)." };
+    return {
+      ok: false,
+      error: "فرمت تصویر مجاز نیست (فقط jpg، png، webp، avif، gif).",
+    };
   }
   if (buffer.length === 0) {
     return { ok: false, error: "فایل خالی است." };
@@ -102,7 +107,8 @@ export function validateUpload(
 // ------------------------------------------------------------------
 
 function getUploadDir(): string {
-  return process.env.UPLOAD_DIR?.trim() || path.join(process.cwd(), "uploads");
+  const uploadDir = process.env.UPLOAD_DIR?.trim() || "uploads";
+  return uploadDir.replace(/\\+$/, "");
 }
 
 /** Strict guard against path traversal — only `subfolder/name.ext` shapes. */
@@ -118,9 +124,10 @@ class LocalMediaStorage implements MediaStorage {
     // Group by year-month to keep directories small: uploads/2026-08/<rand>.webp
     const folder = new Date().toISOString().slice(0, 7);
     const fileName = `${folder}/${crypto.randomBytes(16).toString("hex")}.${ext}`;
-    const absolute = path.join(getUploadDir(), fileName);
+    const uploadDir = getUploadDir();
+    const absolute = `${uploadDir}/${fileName}`;
 
-    await mkdir(path.dirname(absolute), { recursive: true });
+    await mkdir(`${uploadDir}/${folder}`, { recursive: true });
     await writeFile(absolute, buffer);
 
     return {
@@ -131,14 +138,16 @@ class LocalMediaStorage implements MediaStorage {
     };
   }
 
-  async read(fileName: string): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  async read(
+    fileName: string,
+  ): Promise<{ buffer: Buffer; mimeType: string } | null> {
     if (!isSafeMediaPath(fileName)) return null;
     const ext = fileName.split(".").pop()!;
     const mimeType = EXT_TO_MIME[ext];
     if (!mimeType) return null;
 
     try {
-      const buffer = await readFile(path.join(getUploadDir(), fileName));
+      const buffer = await readFile(`${getUploadDir()}/${fileName}`);
       return { buffer, mimeType };
     } catch {
       return null;

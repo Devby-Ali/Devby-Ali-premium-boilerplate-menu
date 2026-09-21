@@ -7,12 +7,11 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMenuItems } from "@/lib/menu-service";
+import { formatPrice } from "@/lib/price";
 
 export const revalidate = 60;
 
-export function formatPrice(value: number) {
-  return `${value.toLocaleString("fa-IR")} تومان`;
-}
+export { formatPrice };
 
 export const metadata: Metadata = {
   title: "کافه | منوی دیجیتال",
@@ -45,13 +44,16 @@ export default async function Home() {
                 لحظه‌ای متفاوت با هر فنجان
               </h2>
               <p className="max-w-2xl text-lg leading-8 text-stone-600 dark:text-stone-300">
-                از قهوه‌های تخصصی تا دسرهای خانگی — همه چیز با دقت انتخاب شده
-                تا بهترین تجربه را داشته باشید.
+                از قهوه‌های تخصصی تا دسرهای خانگی — همه چیز با دقت انتخاب شده تا
+                بهترین تجربه را داشته باشید.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild>
                 <Link href="/list">مشاهده منو</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/reservation">رزرو میز</Link>
               </Button>
             </div>
           </div>
@@ -106,7 +108,12 @@ export default async function Home() {
                     <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
                       {formatPrice(item.price)}
                     </p>
-                    <Button asChild size="sm" variant="outline" className="mt-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="mt-2"
+                    >
                       <Link href={`/product/${item.slug}`}>جزئیات</Link>
                     </Button>
                   </div>

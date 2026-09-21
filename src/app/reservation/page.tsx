@@ -11,13 +11,29 @@ interface ReservationResponse {
   tableNumber: number;
 }
 
+interface ReservationSlot {
+  startHour: number;
+  endHour: number;
+  isActive: boolean;
+  available: boolean;
+  label: string;
+}
+
 interface DateOption {
   value: string;
   label: string;
 }
 
 function toPersianDigits(value: string | number): string {
-  return String(value).replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)] ?? digit);
+  return String(value).replace(
+    /\d/g,
+    (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)] ?? digit,
+  );
+}
+
+/** برچسب فشرده‌ی بازه مطابق سبک img_3.jpg — مثال: «۸–۱۰» */
+function slotGridLabel(slot: ReservationSlot): string {
+  return `${toPersianDigits(slot.startHour)}–${toPersianDigits(slot.endHour)}`;
 }
 
 function createDateOptions(): DateOption[] {
@@ -42,29 +58,60 @@ function createDateOptions(): DateOption[] {
 }
 
 export default function ReservationPage() {
-  const dates = React.useMemo(createDateOptions, []);
+  const dates = React.useMemo(() => createDateOptions(), []);
   const [date, setDate] = React.useState(dates[0]?.value ?? "");
   const [guestCount, setGuestCount] = React.useState("2");
   const [guestName, setGuestName] = React.useState("");
   const [guestPhone, setGuestPhone] = React.useState("");
   const [notes, setNotes] = React.useState("");
-  const [available, setAvailable] = React.useState<boolean | null>(null);
-  const [submitted, setSubmitted] = React.useState<ReservationResponse | null>(null);
+  const [slots, setSlots] = React.useState<ReservationSlot[]>([]);
+  const [selectedSlot, setSelectedSlot] =
+    React.useState<ReservationSlot | null>(null);
+  const [submitted, setSubmitted] = React.useState<ReservationResponse | null>(
+    null,
+  );
   const [feedback, setFeedback] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
-  const checkAvailability = React.useCallback(async () => {
-    if (!date) return;
-    const response = await fetch(
-      `/api/reservations?date=${encodeURIComponent(date)}&guestCount=${guestCount}`,
-    );
-    const payload = (await response.json()) as { data?: { available: boolean } };
-    setAvailable(response.ok ? payload.data?.available ?? false : false);
-  }, [date, guestCount]);
-
   React.useEffect(() => {
-    void checkAvailability();
-  }, [checkAvailability]);
+    let cancelled = false;
+
+    const run = async () => {
+      if (!date) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/reservations?date=${encodeURIComponent(date)}&guestCount=${guestCount}`,
+        );
+        const payload = (await response.json()) as {
+          data?: { slots?: ReservationSlot[] };
+        };
+
+        if (!cancelled) {
+          const nextSlots = response.ok ? (payload.data?.slots ?? []) : [];
+          setSlots(nextSlots);
+          const preferredSlot =
+            nextSlots.find((slot) => slot.isActive && slot.available) ??
+            nextSlots.find((slot) => slot.isActive) ??
+            null;
+          setSelectedSlot(preferredSlot);
+        }
+      } catch {
+        if (!cancelled) {
+          setSlots([]);
+          setSelectedSlot(null);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [date, guestCount]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -81,6 +128,8 @@ export default function ReservationPage() {
           guestPhone,
           guestCount: Number(guestCount),
           notes: notes || null,
+          startHour: selectedSlot?.startHour,
+          endHour: selectedSlot?.endHour,
         }),
       });
       const payload = (await response.json()) as {
@@ -91,9 +140,18 @@ export default function ReservationPage() {
         throw new Error(payload.error ?? "ثبت رزرو انجام نشد.");
       }
       setSubmitted(payload.data);
-      setAvailable(false);
+      setSlots((current) =>
+        current.map((slot) =>
+          slot.startHour === selectedSlot?.startHour &&
+          slot.endHour === selectedSlot?.endHour
+            ? { ...slot, available: false }
+            : slot,
+        ),
+      );
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "ثبت رزرو انجام نشد.");
+      setFeedback(
+        error instanceof Error ? error.message : "ثبت رزرو انجام نشد.",
+      );
     } finally {
       setLoading(false);
     }
@@ -108,8 +166,8 @@ export default function ReservationPage() {
           </p>
           <CardTitle className="mt-3 text-3xl text-white">رزرو میز</CardTitle>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-emerald-100">
-            تاریخ شمسی و تعداد مهمانان را انتخاب کنید. بازه‌ی رزرو این مرحله
-            همیشه از ساعت ۲۰ تا ۲۲ است.
+            تاریخ شمسی و تعداد مهمانان را انتخاب کنید. بازه‌های رزرو از طریق
+            تنظیمات پنل ادمین قابل مدیریت هستند.
           </p>
         </CardHeader>
 
@@ -120,12 +178,13 @@ export default function ReservationPage() {
               <h1 className="mt-4 text-2xl font-semibold">رزرو شما ثبت شد</h1>
               <p className="mt-3 text-sm leading-7">
                 میز شماره {toPersianDigits(submitted.tableNumber)} برای بازه‌ی
-                ۲۰ تا ۲۲ در نظر گرفته شد. تأیید نهایی توسط مجموعه انجام می‌شود.
+                {selectedSlot?.label ?? "انتخاب‌شده"} در نظر گرفته شد. تأیید
+                نهایی توسط مجموعه انجام می‌شود.
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
                   <span className="flex items-center gap-2">
                     <CalendarDays className="h-4 w-4 text-emerald-700" />
@@ -146,15 +205,6 @@ export default function ReservationPage() {
                 </label>
 
                 <label className="space-y-2 text-sm font-medium">
-                  <span>بازه‌ی زمانی</span>
-                  <input
-                    value="۲۰:۰۰ تا ۲۲:۰۰"
-                    readOnly
-                    className="h-11 w-full rounded-2xl border border-input bg-muted px-3"
-                  />
-                </label>
-
-                <label className="space-y-2 text-sm font-medium">
                   <span>تعداد مهمان</span>
                   <input
                     type="number"
@@ -167,6 +217,54 @@ export default function ReservationPage() {
                   />
                 </label>
               </div>
+
+              {/* گرید بازه‌های زمانی — الگوی بصری img_3.jpg: دکمه‌های چیدمان ۴تایی */}
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-medium">بازه‌ی زمانی</legend>
+                {slots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground" aria-live="polite">
+                    در حال بارگذاری بازه‌ها...
+                  </p>
+                ) : (
+                  <div
+                    role="radiogroup"
+                    aria-label="بازه‌ی زمانی رزرو"
+                    className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+                  >
+                    {slots
+                      .filter((slot) => slot.isActive)
+                      .map((slot) => {
+                        const isSelected =
+                          selectedSlot?.startHour === slot.startHour &&
+                          selectedSlot?.endHour === slot.endHour;
+                        return (
+                          <button
+                            key={`${slot.startHour}-${slot.endHour}`}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
+                            disabled={!slot.available}
+                            onClick={() => setSelectedSlot(slot)}
+                            className={`flex h-14 flex-col items-center justify-center rounded-2xl border text-base font-semibold transition-colors ${
+                              isSelected
+                                ? "border-emerald-700 bg-emerald-700 text-white shadow-sm dark:border-emerald-500 dark:bg-emerald-600"
+                                : slot.available
+                                  ? "border-emerald-700/50 bg-white text-emerald-900 hover:bg-emerald-50 dark:border-emerald-700 dark:bg-stone-900 dark:text-emerald-100 dark:hover:bg-emerald-950/40"
+                                  : "cursor-not-allowed border-stone-200 bg-stone-50 text-stone-400 line-through dark:border-stone-800 dark:bg-stone-900/40 dark:text-stone-600"
+                            }`}
+                          >
+                            <span>{slotGridLabel(slot)}</span>
+                            {!slot.available ? (
+                              <span className="text-xs font-normal no-underline">
+                                ظرفیت ندارد
+                              </span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </fieldset>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
@@ -204,19 +302,22 @@ export default function ReservationPage() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <p
                   className={`text-sm ${
-                    available === false
-                      ? "text-rose-700 dark:text-rose-400"
-                      : "text-muted-foreground"
+                    slots.some((slot) => slot.isActive && slot.available)
+                      ? "text-muted-foreground"
+                      : "text-rose-700 dark:text-rose-400"
                   }`}
                   aria-live="polite"
                 >
-                  {available === null
+                  {slots.length === 0
                     ? "در حال بررسی ظرفیت..."
-                    : available
-                      ? "این بازه در حال حاضر ظرفیت دارد."
-                      : "این بازه برای تعداد مهمان انتخابی ظرفیت ندارد."}
+                    : slots.some((slot) => slot.isActive && slot.available)
+                      ? "حداقل یک بازه برای تعداد مهمان انتخابی ظرفیت دارد."
+                      : "هیچ بازه‌ای برای تعداد مهمان انتخابی ظرفیت ندارد."}
                 </p>
-                <Button type="submit" disabled={loading || available === false}>
+                <Button
+                  type="submit"
+                  disabled={loading || !selectedSlot || !selectedSlot.available}
+                >
                   {loading ? "در حال ثبت..." : "ثبت درخواست رزرو"}
                 </Button>
               </div>

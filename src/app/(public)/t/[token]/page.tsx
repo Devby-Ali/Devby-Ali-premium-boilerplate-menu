@@ -15,7 +15,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params;
   const col = await tablesCol();
-  const table = await col.findOne({ qrToken: token, isActive: true });
+  const table = await col.findOne({ token, isActive: true });
 
   if (!table) return { title: "میز یافت نشد" };
 
@@ -29,7 +29,7 @@ export default async function TableMenuPage({ params }: Props) {
   const { token } = await params;
 
   const col = await tablesCol();
-  const table = await col.findOne({ qrToken: token, isActive: true });
+  const table = await col.findOne({ token, isActive: true });
 
   if (!table) notFound();
 
@@ -41,7 +41,8 @@ export default async function TableMenuPage({ params }: Props) {
   return (
     <MenuView
       tableNumber={table.number}
-      tableId={table._id.toString()}
+      tableId={table._id.toHexString()}
+      tableToken={token}
       items={items}
       categories={categories}
     />

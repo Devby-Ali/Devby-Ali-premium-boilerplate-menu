@@ -27,36 +27,34 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return Response.json(
         { error: "ورودی نامعتبر است.", details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { password } = parsed.data;
     const identifier = (parsed.data.identifier ?? parsed.data.email ?? "").trim();
 
-    let userWithRole =
+    let user =
       PHONE_PATTERN.test(identifier) && !identifier.includes("@")
         ? await findUserByPhone(identifier)
         : await findUserByEmail(identifier.toLowerCase());
 
-    if (!userWithRole) {
+    if (!user) {
       const isInitialAdmin =
         identifier.toLowerCase() === env.ADMIN_INITIAL_EMAIL.toLowerCase() &&
         password === env.ADMIN_INITIAL_PASSWORD;
-      if (isInitialAdmin) userWithRole = await ensureInitialAdmin();
+      if (isInitialAdmin) user = await ensureInitialAdmin();
     }
 
-    if (!userWithRole) {
+    if (!user) {
       return Response.json({ error: "ایمیل یا رمز عبور اشتباه است." }, { status: 401 });
     }
-
-    const { user, role } = userWithRole;
 
     if (!user.isActive) {
       return Response.json({ error: "حساب کاربری شما غیرفعال شده است." }, { status: 403 });
     }
 
-    if (!role || !ADMIN_ROLES.includes(role.name as RoleName)) {
+    if (!ADMIN_ROLES.includes(user.role)) {
       return Response.json({ error: "دسترسی غیرمجاز." }, { status: 403 });
     }
 
@@ -69,8 +67,7 @@ export async function POST(request: NextRequest) {
       id: user._id.toHexString(),
       name: user.name,
       email: user.email,
-      role: role.name as RoleName,
-      roleId: role._id.toHexString(),
+      role: user.role,
     };
 
     await setSessionCookie(session);

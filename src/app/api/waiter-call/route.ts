@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
     const existing = await calls.findOne({
       tableId: tableOid,
-      status: "pending",
+      status: "PENDING",
       createdAt: { $gte: twoMinutesAgo },
     });
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       _id: new ObjectId(),
       tableId: tableOid,
       userId: null,
-      status: "pending",
+      status: "PENDING",
       createdAt: now,
       updatedAt: now,
     });

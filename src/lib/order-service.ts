@@ -1,24 +1,31 @@
 // src/lib/order-service.ts
 import { ObjectId } from "mongodb";
 import {
+  getDb,
+  getMongoClient,
   menuItemsCol,
   orderItemsCol,
   ordersCol,
   tablesCol,
   toObjectId,
+  type MenuItemDoc,
   type OrderDoc,
   type OrderItemDoc,
+  type TableDoc,
 } from "@/server/db";
-import type { Order as OrderType } from "@/types";
+import type { Order as OrderType, OrderStatus } from "@/types";
 
-type OrderWithItems = OrderDoc & { items?: OrderItemDoc[]; tableNumber?: number };
+type OrderWithItems = OrderDoc & {
+  items?: OrderItemDoc[];
+  tableNumber?: number;
+};
 
 function mapOrder(o: OrderWithItems): OrderType & { tableNumber?: number } {
   return {
     id: o._id.toHexString(),
     userId: o.userId?.toHexString() ?? null,
     tableId: o.tableId?.toHexString() ?? null,
-    status: o.status as OrderType["status"],
+    status: o.status,
     items: (o.items ?? []).map((item) => ({
       id: item._id.toHexString(),
       orderId: item.orderId.toHexString(),
@@ -34,19 +41,21 @@ function mapOrder(o: OrderWithItems): OrderType & { tableNumber?: number } {
     total: o.total,
     currency: o.currency,
     notes: o.notes ?? null,
-    deliveryType: o.deliveryType as OrderType["deliveryType"],
-    paymentStatus: o.paymentStatus as OrderType["paymentStatus"],
-    gateway: (o.gateway ?? null) as OrderType["gateway"],
+    deliveryType: o.deliveryType,
     createdAt: o.createdAt.toISOString(),
     updatedAt: o.updatedAt.toISOString(),
     tableNumber: o.tableNumber,
   };
 }
 
-async function attachOrderDetails(orders: OrderDoc[]): Promise<OrderWithItems[]> {
+async function attachOrderDetails(
+  orders: OrderDoc[],
+): Promise<OrderWithItems[]> {
   if (orders.length === 0) return [];
   const orderIds = orders.map((order) => order._id);
-  const tableIds = orders.flatMap((order) => (order.tableId ? [order.tableId] : []));
+  const tableIds = orders.flatMap((order) =>
+    order.tableId ? [order.tableId] : [],
+  );
   const [items, tables] = await Promise.all([
     (await orderItemsCol()).find({ orderId: { $in: orderIds } }).toArray(),
     (await tablesCol())
@@ -71,21 +80,25 @@ async function attachOrderDetails(orders: OrderDoc[]): Promise<OrderWithItems[]>
   }));
 }
 
-export async function getOrders(): Promise<(OrderType & { tableNumber?: number })[]> {
+export async function getOrders(): Promise<
+  (OrderType & { tableNumber?: number })[]
+> {
   const col = await ordersCol();
   const orders = await col.find({}).sort({ createdAt: -1 }).toArray();
   return (await attachOrderDetails(orders)).map(mapOrder);
 }
 
-export async function getOrdersByStatus(status: string): Promise<OrderType[]> {
+export async function getOrdersByStatus(
+  status: OrderStatus,
+): Promise<OrderType[]> {
   const col = await ordersCol();
   const orders = await col.find({ status }).sort({ createdAt: -1 }).toArray();
-  return orders.map(mapOrder);
+  return (await attachOrderDetails(orders)).map(mapOrder);
 }
 
 export async function updateOrderStatus(
   id: string,
-  status: string,
+  status: OrderStatus,
 ): Promise<OrderType | null> {
   const objectId = toObjectId(id);
   if (!objectId) return null;
@@ -107,11 +120,11 @@ export async function getOrderStats() {
     .toArray();
   const byStatus = new Map(grouped.map((g) => [g._id, g.count]));
   return {
-    pending: byStatus.get("pending") ?? 0,
-    processing: byStatus.get("processing") ?? 0,
-    ready: byStatus.get("ready") ?? 0,
-    delivered: byStatus.get("delivered") ?? 0,
-    cancelled: byStatus.get("cancelled") ?? 0,
+    PENDING: byStatus.get("PENDING") ?? 0,
+    PROCESSING: byStatus.get("PROCESSING") ?? 0,
+    READY: byStatus.get("READY") ?? 0,
+    DELIVERED: byStatus.get("DELIVERED") ?? 0,
+    CANCELLED: byStatus.get("CANCELLED") ?? 0,
   };
 }
 
@@ -123,12 +136,10 @@ export async function createDineInOrder(input: {
   const tableId = toObjectId(input.tableId);
   if (!tableId) throw new Error("TABLE_NOT_FOUND");
 
-  const table = await (await tablesCol()).findOne({ _id: tableId, isActive: true });
-  if (!table) throw new Error("TABLE_NOT_FOUND");
-
   const normalizedItems = input.items
     .filter((item) => Number.isInteger(item.quantity) && item.quantity > 0)
     .map((item) => ({ ...item, objectId: toObjectId(item.menuItemId) }));
+
   if (
     normalizedItems.length === 0 ||
     normalizedItems.some((item) => !item.objectId)
@@ -136,76 +147,188 @@ export async function createDineInOrder(input: {
     throw new Error("INVALID_ITEMS");
   }
 
-  const menuItems = await (await menuItemsCol())
-    .find({
-      _id: { $in: normalizedItems.map((item) => item.objectId!) },
-      isActive: true,
-    })
-    .toArray();
-  if (menuItems.length !== normalizedItems.length) {
-    throw new Error("ITEM_NOT_AVAILABLE");
-  }
-
-  const menuItemMap = new Map(
-    menuItems.map((item) => [item._id.toHexString(), item]),
-  );
-  const orderItems = normalizedItems.map((item) => {
-    const menuItem = menuItemMap.get(item.menuItemId);
-    if (
-      !menuItem ||
-      (!menuItem.isUnlimited &&
-        (menuItem.stockCount ?? 0) < item.quantity)
-    ) {
-      throw new Error("ITEM_NOT_AVAILABLE");
-    }
-    return { menuItem, quantity: item.quantity };
-  });
-
-  const subtotal = orderItems.reduce(
-    (total, item) => total + item.menuItem.price * item.quantity,
-    0,
-  );
-  const orders = await ordersCol();
-  const now = new Date();
-  const doc: OrderDoc = {
-    _id: new ObjectId(),
-    userId: null,
-    tableId,
-    status: "pending",
-    subtotal,
-    discount: 0,
-    total: subtotal,
-    currency: "IRR",
-    notes: input.notes ?? null,
-    deliveryType: "dine_in",
-    paymentStatus: "pending",
-    gateway: null,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await orders.insertOne(doc);
-
-  const itemDocuments: OrderItemDoc[] = orderItems.map(({ menuItem, quantity }) => ({
-    _id: new ObjectId(),
-    orderId: doc._id,
-    menuItemId: menuItem._id,
-    name: menuItem.name,
-    price: menuItem.price,
-    quantity,
-    currency: menuItem.currency,
-    createdAt: now,
-  }));
+  const client = await getMongoClient();
+  const session = client.startSession();
 
   try {
-    await (await orderItemsCol()).insertMany(itemDocuments);
-  } catch (error) {
-    await orders.deleteOne({ _id: doc._id });
-    throw error;
-  }
+    return await session.withTransaction(
+      async () => {
+        const db = await getDb();
+        const tables = db.collection<TableDoc>("tables");
+        const menuItems = db.collection<MenuItemDoc>("menu_items");
+        const orders = db.collection<OrderDoc>("orders");
+        const orderItems = db.collection<OrderItemDoc>("order_items");
 
-  return mapOrder({
-    ...doc,
-    items: itemDocuments,
-    tableNumber: table.number,
-  });
+        const table = await tables.findOne(
+          { _id: tableId, isActive: true },
+          { session },
+        );
+        if (!table) throw new Error("TABLE_NOT_FOUND");
+
+        const itemIds = normalizedItems.map((item) => item.objectId!);
+        const availableMenuItems = await menuItems
+          .find(
+            {
+              _id: { $in: itemIds },
+              isActive: true,
+              inStock: true,
+            },
+            { session },
+          )
+          .toArray();
+
+        if (availableMenuItems.length !== normalizedItems.length) {
+          throw new Error("ITEM_NOT_AVAILABLE");
+        }
+
+        const menuItemMap = new Map(
+          availableMenuItems.map((item) => [item._id.toHexString(), item]),
+        );
+
+        const orderItemsDraft = normalizedItems.map((item) => {
+          const menuItem = menuItemMap.get(item.menuItemId);
+          if (!menuItem || !menuItem.inStock) {
+            throw new Error("ITEM_NOT_AVAILABLE");
+          }
+          return { menuItem, quantity: item.quantity };
+        });
+
+        const subtotal = orderItemsDraft.reduce(
+          (total, item) => total + item.menuItem.price * item.quantity,
+          0,
+        );
+        const now = new Date();
+        const doc: OrderDoc = {
+          _id: new ObjectId(),
+          userId: null,
+          tableId,
+          status: "PENDING",
+          subtotal,
+          discount: 0,
+          total: subtotal,
+          currency: "IRR",
+          notes: input.notes ?? null,
+          deliveryType: "DINE_IN",
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await orders.insertOne(doc, { session });
+
+        const itemDocuments: OrderItemDoc[] = orderItemsDraft.map(
+          ({ menuItem, quantity }) => ({
+            _id: new ObjectId(),
+            orderId: doc._id,
+            menuItemId: menuItem._id,
+            name: menuItem.name,
+            price: menuItem.price,
+            quantity,
+            currency: menuItem.currency,
+            createdAt: now,
+          }),
+        );
+
+        await orderItems.insertMany(itemDocuments, { session });
+
+        return mapOrder({
+          ...doc,
+          items: itemDocuments,
+          tableNumber: table.number,
+        });
+      },
+      {
+        readConcern: { level: "snapshot" },
+        writeConcern: { w: "majority" },
+      },
+    );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("Transaction") ||
+        error.message.includes("transaction"))
+    ) {
+      // Fallback to the original non-transactional path only when the deployment
+      // environment does not support multi-document transactions.
+      const fallbackTable = await (
+        await tablesCol()
+      ).findOne({
+        _id: tableId,
+        isActive: true,
+      });
+      if (!fallbackTable) throw new Error("TABLE_NOT_FOUND");
+
+      const fallbackItems = await (
+        await menuItemsCol()
+      )
+        .find({
+          _id: { $in: normalizedItems.map((item) => item.objectId!) },
+          isActive: true,
+          inStock: true,
+        })
+        .toArray();
+
+      if (fallbackItems.length !== normalizedItems.length) {
+        throw new Error("ITEM_NOT_AVAILABLE");
+      }
+
+      const itemMap = new Map(
+        fallbackItems.map((item) => [item._id.toHexString(), item]),
+      );
+      const fallbackOrderItems = normalizedItems.map((item) => {
+        const menuItem = itemMap.get(item.menuItemId);
+        if (!menuItem || !menuItem.inStock) {
+          throw new Error("ITEM_NOT_AVAILABLE");
+        }
+        return { menuItem, quantity: item.quantity };
+      });
+
+      const subtotal = fallbackOrderItems.reduce(
+        (total, item) => total + item.menuItem.price * item.quantity,
+        0,
+      );
+      const now = new Date();
+      const doc: OrderDoc = {
+        _id: new ObjectId(),
+        userId: null,
+        tableId,
+        status: "PENDING",
+        subtotal,
+        discount: 0,
+        total: subtotal,
+        currency: "IRR",
+        notes: input.notes ?? null,
+        deliveryType: "DINE_IN",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const orders = await ordersCol();
+      await orders.insertOne(doc);
+
+      const itemDocuments: OrderItemDoc[] = fallbackOrderItems.map(
+        ({ menuItem, quantity }) => ({
+          _id: new ObjectId(),
+          orderId: doc._id,
+          menuItemId: menuItem._id,
+          name: menuItem.name,
+          price: menuItem.price,
+          quantity,
+          currency: menuItem.currency,
+          createdAt: now,
+        }),
+      );
+
+      await (await orderItemsCol()).insertMany(itemDocuments);
+
+      return mapOrder({
+        ...doc,
+        items: itemDocuments,
+        tableNumber: fallbackTable.number,
+      });
+    }
+
+    throw error;
+  } finally {
+    session.endSession();
+  }
 }

@@ -1,4 +1,11 @@
-import { ordersCol, orderItemsCol, purchasesCol, expensesCol } from "@/server/db";
+import type { Filter } from "mongodb";
+import {
+  ordersCol,
+  orderItemsCol,
+  purchasesCol,
+  expensesCol,
+  type OrderDoc,
+} from "@/server/db";
 
 export type ReportPeriod = "weekly" | "monthly" | "yearly";
 
@@ -17,9 +24,9 @@ export async function getReport(period: ReportPeriod) {
   const orderItems = await orderItemsCol();
   const purchases = await purchasesCol();
   const expenses = await expensesCol();
-  const validOrderFilter = {
+  const validOrderFilter: Filter<OrderDoc> = {
     createdAt: { $gte: start, $lt: end },
-    status: { $ne: "cancelled" },
+    status: { $ne: "CANCELLED" },
   };
 
   const [sales, orderCount, topProducts, purchaseTotal, expenseTotal] =
@@ -81,16 +88,26 @@ export async function getReport(period: ReportPeriod) {
     ]);
 
   const revenue = sales[0]?.total ?? 0;
-  const costs = (purchaseTotal[0]?.total ?? 0) + (expenseTotal[0]?.total ?? 0);
+  const purchaseTotalAmount = purchaseTotal[0]?.total ?? 0;
+  const expenseTotalAmount = expenseTotal[0]?.total ?? 0;
+  const costs = purchaseTotalAmount + expenseTotalAmount;
+  const estimatedProfit = revenue - costs;
+  const averageOrderValue = orderCount > 0 ? revenue / orderCount : 0;
+  const estimatedProfitMargin =
+    revenue > 0 ? (estimatedProfit / revenue) * 100 : 0;
+
   return {
     period,
     from: start.toISOString(),
     to: end.toISOString(),
     orderCount,
     revenue,
-    purchases: purchaseTotal[0]?.total ?? 0,
-    expenses: expenseTotal[0]?.total ?? 0,
-    estimatedProfit: revenue - costs,
+    purchases: purchaseTotalAmount,
+    expenses: expenseTotalAmount,
+    costs,
+    averageOrderValue,
+    estimatedProfit,
+    estimatedProfitMargin,
     topProducts: topProducts.map((product) => ({
       id: product._id.toString(),
       name: product.name,

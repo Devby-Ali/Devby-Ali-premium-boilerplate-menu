@@ -18,6 +18,8 @@ const ROUTE_PERMISSIONS: Record<string, keyof typeof PERMISSIONS> = {
   stock: "manageStock",
   tables: "manageTables",
   reports: "viewReports",
+  purchases: "viewReports",
+  expenses: "viewReports",
   reservations: "manageReservations",
   orders: "viewOrders",
   "waiter-calls": "handleWaiterCall",

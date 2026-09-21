@@ -4,14 +4,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
-import { requireAdminSession } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { mediaAssetsCol, type MediaAssetDoc } from "@/server/db";
 import { getMediaStorage, validateUpload } from "@/server/media-storage";
 
 export const runtime = "nodejs";
 
+const ALLOWED_ROLES = ["SuperAdmin", "Manager"] as const;
+
 export async function POST(request: NextRequest) {
-  if (!(await requireAdminSession())) {
+  if (!(await requireRole(ALLOWED_ROLES))) {
     return NextResponse.json({ error: "دسترسی غیرمجاز." }, { status: 401 });
   }
 
@@ -36,9 +38,10 @@ export async function POST(request: NextRequest) {
 
     // Track the asset (schema model MediaAsset — PRD §8). Ownership is linked
     // to a menu item when the item form is saved with this URL.
-    const ownerType = typeof formData.get("ownerType") === "string"
-      ? String(formData.get("ownerType"))
-      : "unassigned";
+    const ownerType =
+      typeof formData.get("ownerType") === "string"
+        ? String(formData.get("ownerType"))
+        : "unassigned";
     const doc: MediaAssetDoc = {
       _id: new ObjectId(),
       fileName: stored.fileName,

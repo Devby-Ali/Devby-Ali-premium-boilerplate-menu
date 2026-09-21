@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest) {
   const parsed = z
     .object({
       id: z.string().trim().min(1),
-      status: z.enum(["confirmed", "cancelled", "completed"]),
+      status: z.enum(["CONFIRMED", "CANCELLED", "COMPLETED"]),
     })
     .safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

@@ -1,54 +1,63 @@
+// src/app/api/admin/menu/route.ts
+// API مدیریت آیتم‌های منو — قرارداد Canonical:
+// ورودی قیمت به «تومان» (priceToman) است و در سرویس به ریال (IRR) ذخیره می‌شود.
 import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
 import { z } from "zod";
 
-import { requireAdminSession } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { tomanToRial } from "@/lib/price";
 import { slugify, ensureUniqueSlug } from "@/lib/slug";
 import {
   getAllMenuItems,
   createMenuItem,
   updateMenuItem,
   softDeleteMenuItem,
-  getCategoriesWithCount,
+  getAllCategoriesWithCount,
   menuItemSlugExists,
   type CreateMenuItemInput,
   type UpdateMenuItemInput,
 } from "@/lib/menu-service";
 import type { MenuItem } from "@/types";
 
-const CATEGORY_SLUGS = ["coffee", "dessert", "savory", "signature"] as const;
+const ALLOWED_ROLES = ["SuperAdmin", "Manager"] as const;
 
-const imageUrlSchema = z
+const imageUrlSchema = z.string().trim().max(2048).nullable().optional();
+
+const objectIdSchema = z
   .string()
   .trim()
-  .max(2048)
-  .nullable()
-  .optional();
+  .refine((value) => ObjectId.isValid(value), { message: "شناسه نامعتبر است" });
 
 const createMenuItemSchema = z.object({
-  title: z.string().trim().min(1, "عنوان الزامی است"),
+  name: z.string().trim().min(1, "عنوان الزامی است"),
   description: z.string().trim().min(1, "توضیحات الزامی است"),
-  category: z.enum(CATEGORY_SLUGS, { message: "دسته‌بندی نامعتبر است" }),
-  price: z.number().positive("قیمت باید مثبت باشد"),
-  prepTime: z.number().positive("زمان آماده‌سازی باید مثبت باشد"),
-  featured: z.boolean().optional().default(false),
-  ingredients: z.array(z.string()).optional().default([]),
+  categoryId: objectIdSchema,
+  /** قیمت به تومان — قبل از ذخیره به ریال تبدیل می‌شود */
+  priceToman: z.number().positive("قیمت باید مثبت باشد"),
+  preparationTime: z.number().int().positive().nullable().optional(),
+  isFeatured: z.boolean().optional().default(false),
+  inStock: z.boolean().optional().default(true),
+  tags: z.array(z.string().trim().min(1)).optional().default([]),
   imageUrl: imageUrlSchema,
 });
 
 const updateMenuItemSchema = z.object({
-  id: z.string().trim().min(1, "شناسه الزامی است"),
-  title: z.string().trim().min(1).optional(),
+  id: objectIdSchema,
+  name: z.string().trim().min(1).optional(),
   description: z.string().trim().min(1).optional(),
-  category: z.enum(CATEGORY_SLUGS).optional(),
-  price: z.number().positive().optional(),
-  prepTime: z.number().positive().optional(),
-  featured: z.boolean().optional(),
-  ingredients: z.array(z.string()).optional(),
+  categoryId: objectIdSchema.optional(),
+  priceToman: z.number().positive().optional(),
+  preparationTime: z.number().int().positive().nullable().optional(),
+  isFeatured: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  inStock: z.boolean().optional(),
+  tags: z.array(z.string().trim().min(1)).optional(),
   imageUrl: imageUrlSchema,
 });
 
 const deleteMenuItemSchema = z.object({
-  id: z.string().trim().min(1, "شناسه الزامی است"),
+  id: objectIdSchema,
 });
 
 function unauthorized() {
@@ -58,32 +67,42 @@ function unauthorized() {
 function toAdminMenuItem(item: MenuItem) {
   return {
     id: item.id,
-    title: item.name,
+    name: item.name,
     slug: item.slug,
     description: item.description ?? "",
+    /** ریال — نمایش تومان فقط در UI با formatPrice */
     price: item.price,
-    category: (item.category?.slug ?? "coffee") as string,
-    badge: item.isFeatured ? "ویژه" : undefined,
-    featured: item.isFeatured,
-    prepTime: item.preparationTime ?? 0,
-    ingredients: item.tags ?? [],
-    story: item.description ?? "",
+    currency: item.currency,
+    categoryId: item.categoryId,
+    categorySlug: item.category?.slug ?? null,
+    categoryName: item.category?.name ?? null,
+    inStock: item.inStock,
+    isFeatured: item.isFeatured,
+    isActive: item.isActive,
+    preparationTime: item.preparationTime ?? null,
+    tags: item.tags,
     imageUrl: item.imageUrl ?? null,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
   };
 }
 
+function isCategoryNotFound(error: unknown): boolean {
+  return error instanceof Error && error.message === "CATEGORY_NOT_FOUND";
+}
+
 export async function GET() {
-  if (!(await requireAdminSession())) return unauthorized();
+  if (!(await requireRole(ALLOWED_ROLES))) return unauthorized();
 
   try {
     const [items, categories] = await Promise.all([
       getAllMenuItems(),
-      getCategoriesWithCount(),
+      getAllCategoriesWithCount(),
     ]);
 
     return NextResponse.json({
       data: items.map(toAdminMenuItem),
-      categories: categories.map((c) => ({ slug: c.slug, name: c.name, count: c.count })),
+      categories,
     });
   } catch (error) {
     console.error("[ADMIN MENU GET ERROR]", error);
@@ -95,7 +114,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await requireAdminSession())) return unauthorized();
+  if (!(await requireRole(ALLOWED_ROLES))) return unauthorized();
 
   try {
     const body = await request.json();
@@ -111,27 +130,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Unicode-aware slug (Persian-safe), guaranteed unique (PRD FR-A05).
-    const slug = await ensureUniqueSlug(slugify(parsed.data.title), menuItemSlugExists);
+    // slug یکتا و سازگار با فارسی
+    const slug = await ensureUniqueSlug(
+      slugify(parsed.data.name),
+      menuItemSlugExists,
+    );
 
     const input: CreateMenuItemInput = {
-      name: parsed.data.title,
+      name: parsed.data.name,
       slug,
       description: parsed.data.description,
-      price: parsed.data.price,
-      categorySlug: parsed.data.category,
+      price: tomanToRial(parsed.data.priceToman),
+      categoryId: parsed.data.categoryId,
       imageUrl: parsed.data.imageUrl ?? null,
-      isFeatured: parsed.data.featured,
-      preparationTime: parsed.data.prepTime,
-      tags: parsed.data.ingredients,
+      isFeatured: parsed.data.isFeatured,
+      inStock: parsed.data.inStock,
+      preparationTime: parsed.data.preparationTime ?? null,
+      tags: parsed.data.tags,
     };
 
     const item = await createMenuItem(input);
 
-    return NextResponse.json({
-      data: toAdminMenuItem(item),
-    });
+    return NextResponse.json({ data: toAdminMenuItem(item) }, { status: 201 });
   } catch (error) {
+    if (isCategoryNotFound(error)) {
+      return NextResponse.json(
+        { error: "دسته‌بندی انتخاب‌شده یافت نشد." },
+        { status: 400 },
+      );
+    }
     console.error("[ADMIN MENU CREATE ERROR]", error);
     return NextResponse.json(
       { error: "در حال حاضر امکان ذخیره آیتم منو وجود ندارد." },
@@ -141,7 +168,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!(await requireAdminSession())) return unauthorized();
+  if (!(await requireRole(ALLOWED_ROLES))) return unauthorized();
 
   try {
     const body = await request.json();
@@ -159,17 +186,28 @@ export async function PATCH(request: NextRequest) {
 
     const input: UpdateMenuItemInput = { id: parsed.data.id };
 
-    if (parsed.data.title) {
-      input.name = parsed.data.title;
-      input.slug = await ensureUniqueSlug(slugify(parsed.data.title), menuItemSlugExists);
+    if (parsed.data.name) {
+      input.name = parsed.data.name;
+      input.slug = await ensureUniqueSlug(
+        slugify(parsed.data.name),
+        menuItemSlugExists,
+      );
     }
-    if (parsed.data.description !== undefined) input.description = parsed.data.description;
-    if (parsed.data.category !== undefined) input.categorySlug = parsed.data.category;
-    if (parsed.data.price !== undefined) input.price = parsed.data.price;
-    if (parsed.data.prepTime !== undefined) input.preparationTime = parsed.data.prepTime;
-    if (parsed.data.featured !== undefined) input.isFeatured = parsed.data.featured;
-    if (parsed.data.ingredients !== undefined) input.tags = parsed.data.ingredients;
-    if (parsed.data.imageUrl !== undefined) input.imageUrl = parsed.data.imageUrl;
+    if (parsed.data.description !== undefined)
+      input.description = parsed.data.description;
+    if (parsed.data.categoryId !== undefined)
+      input.categoryId = parsed.data.categoryId;
+    if (parsed.data.priceToman !== undefined)
+      input.price = tomanToRial(parsed.data.priceToman);
+    if (parsed.data.preparationTime !== undefined)
+      input.preparationTime = parsed.data.preparationTime;
+    if (parsed.data.isFeatured !== undefined)
+      input.isFeatured = parsed.data.isFeatured;
+    if (parsed.data.isActive !== undefined) input.isActive = parsed.data.isActive;
+    if (parsed.data.inStock !== undefined) input.inStock = parsed.data.inStock;
+    if (parsed.data.tags !== undefined) input.tags = parsed.data.tags;
+    if (parsed.data.imageUrl !== undefined)
+      input.imageUrl = parsed.data.imageUrl;
 
     const item = await updateMenuItem(input);
 
@@ -180,10 +218,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      data: toAdminMenuItem(item),
-    });
+    return NextResponse.json({ data: toAdminMenuItem(item) });
   } catch (error) {
+    if (isCategoryNotFound(error)) {
+      return NextResponse.json(
+        { error: "دسته‌بندی انتخاب‌شده یافت نشد." },
+        { status: 400 },
+      );
+    }
     console.error("[ADMIN MENU UPDATE ERROR]", error);
     return NextResponse.json(
       { error: "به‌روزرسانی آیتم منو با خطا مواجه شد." },
@@ -193,7 +235,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!(await requireAdminSession())) return unauthorized();
+  if (!(await requireRole(ALLOWED_ROLES))) return unauthorized();
 
   try {
     const body = await request.json();

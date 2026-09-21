@@ -52,7 +52,7 @@ export async function GET() {
 
 const patchSchema = z.object({
   id: z.string().trim().min(1),
-  status: z.enum(["acknowledged", "resolved"]),
+  status: z.enum(["ACKNOWLEDGED", "RESOLVED"]),
 });
 
 export async function PATCH(request: NextRequest) {

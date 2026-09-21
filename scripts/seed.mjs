@@ -68,7 +68,6 @@ async function main() {
     db
       .collection("users")
       .createIndex({ phone: 1 }, { unique: true, sparse: true }),
-    db.collection("roles").createIndex({ name: 1 }, { unique: true }),
     db.collection("menu_categories").createIndex({ slug: 1 }, { unique: true }),
     db.collection("menu_items").createIndex({ slug: 1 }, { unique: true }),
     db.collection("menu_items").createIndex({ categoryId: 1 }),
@@ -82,24 +81,6 @@ async function main() {
   ]);
   console.log("✓ Indexes ensured");
 
-  // ── Role: SuperAdmin (RBAC foundation) ──────────────────────────────
-  const roleResult = await db.collection("roles").findOneAndUpdate(
-    { name: "SuperAdmin" },
-    {
-      $setOnInsert: {
-        _id: new ObjectId(),
-        name: "SuperAdmin",
-        description: "Super Administrator",
-        isDefault: true,
-        createdAt: now(),
-        updatedAt: now(),
-      },
-    },
-    { upsert: true, returnDocument: "after" },
-  );
-  const adminRole = roleResult;
-  console.log("✓ Role: SuperAdmin");
-
   // ── Initial admin user ──────────────────────────────────────────
   const passwordHash = await bcrypt.hash(ADMIN_INITIAL_PASSWORD, 12);
   await db.collection("users").findOneAndUpdate(
@@ -111,7 +92,7 @@ async function main() {
         email: ADMIN_INITIAL_EMAIL,
         phone: null,
         passwordHash,
-        roleId: adminRole._id,
+        role: "SuperAdmin",
         isActive: true,
         createdAt: now(),
         updatedAt: now(),
@@ -251,22 +232,19 @@ async function main() {
   if (ordersCount === 0) {
     const demoOrders = [
       {
-        status: "pending",
+        status: "PENDING",
         total: 38000,
-        deliveryType: "dine_in",
-        paymentStatus: "pending",
+        deliveryType: "DINE_IN",
       },
       {
-        status: "processing",
+        status: "PROCESSING",
         total: 110000,
-        deliveryType: "takeaway",
-        paymentStatus: "paid",
+        deliveryType: "TAKEAWAY",
       },
       {
-        status: "pending",
+        status: "PENDING",
         total: 65000,
-        deliveryType: "dine_in",
-        paymentStatus: "pending",
+        deliveryType: "DINE_IN",
       },
     ].map((o) => ({
       _id: new ObjectId(),
@@ -278,8 +256,6 @@ async function main() {
       currency: "IRR",
       notes: null,
       deliveryType: o.deliveryType,
-      paymentStatus: o.paymentStatus,
-      gateway: null,
       createdAt: now(),
       updatedAt: now(),
     }));

@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createDineInOrder } from "@/lib/order-service";
+import { tablesCol, toObjectId } from "@/server/db";
 
 const orderSchema = z.object({
   tableId: z.string().trim().min(1),
+  tableToken: z.string().uuid("شناسه میز نامعتبر است"),
   items: z
     .array(
       z.object({
@@ -21,13 +23,35 @@ export async function POST(request: NextRequest) {
   const parsed = orderSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "اطلاعات سفارش نامعتبر است.", details: parsed.error.flatten().fieldErrors },
+      {
+        error: "اطلاعات سفارش نامعتبر است.",
+        details: parsed.error.flatten().fieldErrors,
+      },
       { status: 400 },
     );
   }
 
   try {
-    const order = await createDineInOrder(parsed.data);
+    const tableOid = toObjectId(parsed.data.tableId);
+    if (!tableOid) {
+      return NextResponse.json({ error: "میز فعال یافت نشد." }, { status: 404 });
+    }
+
+    // جلوگیری از جعل tableId: باید با token مسیر QR مطابقت داشته باشد
+    const table = await (await tablesCol()).findOne({
+      _id: tableOid,
+      token: parsed.data.tableToken,
+      isActive: true,
+    });
+    if (!table) {
+      return NextResponse.json({ error: "میز فعال یافت نشد." }, { status: 404 });
+    }
+
+    const order = await createDineInOrder({
+      tableId: parsed.data.tableId,
+      items: parsed.data.items,
+      notes: parsed.data.notes,
+    });
     return NextResponse.json({ data: order }, { status: 201 });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";

@@ -56,6 +56,10 @@
 ./src/app/admin/(panel)/orders
 ./src/app/admin/(panel)/orders/page.tsx
 ./src/app/admin/(panel)/page.tsx
+./src/app/admin/(panel)/reports
+./src/app/admin/(panel)/reports/page.tsx
+./src/app/admin/(panel)/reservations
+./src/app/admin/(panel)/reservations/page.tsx
 ./src/app/admin/(panel)/settings
 ./src/app/admin/(panel)/settings/page.tsx
 ./src/app/admin/(panel)/tables
@@ -83,6 +87,12 @@
 ./src/app/api/admin/menu/route.ts
 ./src/app/api/admin/orders
 ./src/app/api/admin/orders/route.ts
+./src/app/api/admin/orders/stream
+./src/app/api/admin/orders/stream/route.ts
+./src/app/api/admin/reports
+./src/app/api/admin/reports/route.ts
+./src/app/api/admin/reservations
+./src/app/api/admin/reservations/route.ts
 ./src/app/api/admin/settings
 ./src/app/api/admin/settings/route.ts
 ./src/app/api/admin/tables
@@ -109,6 +119,10 @@
 ./src/app/api/menu/route.ts
 ./src/app/api/menu/[slug]
 ./src/app/api/menu/[slug]/route.ts
+./src/app/api/orders
+./src/app/api/orders/route.ts
+./src/app/api/reservations
+./src/app/api/reservations/route.ts
 ./src/app/api/waiter-call
 ./src/app/api/waiter-call/route.ts
 ./src/app/favicon.ico
@@ -118,6 +132,8 @@
 ./src/app/globals.css
 ./src/app/layout.tsx
 ./src/app/not-found.tsx
+./src/app/reservation
+./src/app/reservation/page.tsx
 ./src/components
 ./src/components/auth-hydrator.tsx
 ./src/components/site-header.tsx
@@ -140,6 +156,9 @@
 ./src/lib/http.ts
 ./src/lib/menu-service.ts
 ./src/lib/order-service.ts
+./src/lib/price.ts
+./src/lib/report-service.ts
+./src/lib/reservation-service.ts
 ./src/lib/settings-service.ts
 ./src/lib/slug.ts
 ./src/lib/user-service.ts
@@ -160,3 +179,9 @@
 ./uploads/2026-08
 ./uploads/2026-08/1bf7e28a3fc3fa9846d487d5d6144edb.jpg
 ./uploads/2026-08/2cca0897eadb589557fa8b271e2911ef.jpg
+./uploads/2026-08/328acb0c7272e5e3b994940dbc13e592.png
+./uploads/2026-08/7f0fd93a895bd66b3ea735f1daae061d.png
+./uploads/2026-08/84d6d69a2c80f3c9c999f671dd79138a.jpg
+./uploads/2026-08/91c1b56c826fa0a9f18d195fbddc41da.jpg
+./uploads/2026-08/b156cac376e9c1a27f23d28232c0ff67.jpg
+./uploads/2026-08/ba8296e587383a6fd99608e322d6859b.jpg

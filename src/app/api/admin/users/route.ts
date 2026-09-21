@@ -65,12 +65,12 @@ export async function GET() {
 
   try {
     const users = await listUsers();
-    const data = users.map(({ user, role }) => ({
+    const data = users.map((user) => ({
       id: user._id.toHexString(),
       name: user.name,
       email: user.email,
       phone: user.phone ?? null,
-      role: role?.name ?? null,
+      role: user.role,
       isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),
     }));

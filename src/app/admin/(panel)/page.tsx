@@ -48,23 +48,27 @@ export default async function AdminPage() {
   ]);
 
   // مقادیر امن با fallback به صفر در صورت خطا
-  const allItems    = items.status      === "fulfilled" ? items.value      : [];
-  const allCats     = categories.status === "fulfilled" ? categories.value : [];
-  const stats       = orderStats.status === "fulfilled" ? orderStats.value : null;
+  const allItems = items.status === "fulfilled" ? items.value : [];
+  const allCats = categories.status === "fulfilled" ? categories.value : [];
+  const stats = orderStats.status === "fulfilled" ? orderStats.value : null;
 
-  const itemCount    = allItems.length;
-  const catCount     = allCats.length;
-  const orderCount   = stats
-    ? stats.pending + stats.processing + stats.ready + stats.delivered + stats.cancelled
+  const itemCount = allItems.length;
+  const catCount = allCats.length;
+  const orderCount = stats
+    ? stats.PENDING +
+      stats.PROCESSING +
+      stats.READY +
+      stats.DELIVERED +
+      stats.CANCELLED
     : 0;
 
   // آیتم‌های ویژه — حداکثر ۲ آیتم
   const featuredItems = allItems.filter((i) => i.isFeatured).slice(0, 2);
 
   const dashboardStats = [
-    { label: "آیتم‌های منو",        value: itemCount  },
-    { label: "دسته‌بندی‌های فعال",  value: catCount   },
-    { label: "کل سفارش‌ها",         value: orderCount },
+    { label: "آیتم‌های منو", value: itemCount },
+    { label: "دسته‌بندی‌های فعال", value: catCount },
+    { label: "کل سفارش‌ها", value: orderCount },
   ];
 
   return (
@@ -149,9 +153,9 @@ export default async function AdminPage() {
           <CardContent className="space-y-3">
             {(
               [
-                { icon: Sparkles,   label: "به‌روزرسانی آیتم‌های ویژه منو" },
-                { icon: ShoppingBag, label: "بررسی سفارش‌های در انتظار"    },
-                { icon: Users2,      label: "مشاهده دسترسی‌های کاربر"       },
+                { icon: Sparkles, label: "به‌روزرسانی آیتم‌های ویژه منو" },
+                { icon: ShoppingBag, label: "بررسی سفارش‌های در انتظار" },
+                { icon: Users2, label: "مشاهده دسترسی‌های کاربر" },
               ] as const
             ).map(({ icon: Icon, label }) => (
               <div

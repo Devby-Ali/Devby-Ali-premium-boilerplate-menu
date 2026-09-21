@@ -7,6 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+interface ReservationSlotDraft {
+  startHour: number;
+  endHour: number;
+  isActive: boolean;
+}
+
 interface SettingsDraftState {
   siteName: string;
   contactEmail: string;
@@ -15,7 +21,18 @@ interface SettingsDraftState {
   tagline: string;
   heroTitle: string;
   heroSubtitle: string;
+  reservationSlots: ReservationSlotDraft[];
 }
+
+const initialReservationSlots: ReservationSlotDraft[] = [
+  { startHour: 8, endHour: 10, isActive: true },
+  { startHour: 10, endHour: 12, isActive: true },
+  { startHour: 12, endHour: 14, isActive: true },
+  { startHour: 14, endHour: 16, isActive: true },
+  { startHour: 16, endHour: 18, isActive: true },
+  { startHour: 18, endHour: 20, isActive: true },
+  { startHour: 20, endHour: 22, isActive: true },
+];
 
 const initialSettings: SettingsDraftState = {
   siteName: "Premium Menu",
@@ -26,6 +43,7 @@ const initialSettings: SettingsDraftState = {
   heroTitle: "ارائه‌ی تجربه‌ای لوکس در هر لحظه",
   heroSubtitle:
     "از اولین لمس تا آخرین لقمه، برند شما باید حس حرفه‌ای بودن را منتقل کند.",
+  reservationSlots: initialReservationSlots,
 };
 
 export default function AdminSettingsPage() {
@@ -41,7 +59,9 @@ export default function AdminSettingsPage() {
     const loadSettings = async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/admin/settings", { credentials: "include" });
+        const res = await fetch("/api/admin/settings", {
+          credentials: "include",
+        });
         if (res.ok) {
           const payload = await res.json();
           if (payload?.data) {
@@ -53,6 +73,17 @@ export default function AdminSettingsPage() {
               tagline: prev.tagline,
               heroTitle: prev.heroTitle,
               heroSubtitle: prev.heroSubtitle,
+              reservationSlots:
+                Array.isArray(payload.data.reservationSlots) &&
+                payload.data.reservationSlots.length > 0
+                  ? payload.data.reservationSlots.map(
+                      (slot: ReservationSlotDraft) => ({
+                        startHour: Number(slot.startHour),
+                        endHour: Number(slot.endHour),
+                        isActive: slot.isActive !== false,
+                      }),
+                    )
+                  : prev.reservationSlots,
             }));
           }
         }
@@ -82,6 +113,7 @@ export default function AdminSettingsPage() {
           contactEmail: settings.contactEmail || null,
           contactPhone: settings.contactPhone || null,
           address: settings.address || null,
+          reservationSlots: settings.reservationSlots,
         }),
       });
 
@@ -247,6 +279,117 @@ export default function AdminSettingsPage() {
 
             <Button type="submit" disabled={saving}>
               {saving ? "در حال ذخیره..." : "ذخیره تنظیمات"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>بازه‌های رزرو</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {settings.reservationSlots.map((slot, index) => (
+              <div
+                key={`${slot.startHour}-${slot.endHour}-${index}`}
+                className="grid gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-950/40 md:grid-cols-[auto_1fr_1fr]"
+              >
+                <label className="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300">
+                  <input
+                    type="checkbox"
+                    checked={slot.isActive}
+                    onChange={(event) =>
+                      setSettings((current) => ({
+                        ...current,
+                        reservationSlots: current.reservationSlots.map(
+                          (item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, isActive: event.target.checked }
+                              : item,
+                        ),
+                      }))
+                    }
+                  />
+                  فعال
+                </label>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`slot-start-${index}`}>ساعت شروع</Label>
+                  <Input
+                    id={`slot-start-${index}`}
+                    type="number"
+                    min={0}
+                    max={23}
+                    value={slot.startHour}
+                    onChange={(event) =>
+                      setSettings((current) => ({
+                        ...current,
+                        reservationSlots: current.reservationSlots.map(
+                          (item, itemIndex) =>
+                            itemIndex === index
+                              ? {
+                                  ...item,
+                                  startHour: Math.min(
+                                    23,
+                                    Math.max(
+                                      0,
+                                      Number(event.target.value) || 0,
+                                    ),
+                                  ),
+                                }
+                              : item,
+                        ),
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`slot-end-${index}`}>ساعت پایان</Label>
+                  <Input
+                    id={`slot-end-${index}`}
+                    type="number"
+                    min={1}
+                    max={24}
+                    value={slot.endHour}
+                    onChange={(event) =>
+                      setSettings((current) => ({
+                        ...current,
+                        reservationSlots: current.reservationSlots.map(
+                          (item, itemIndex) =>
+                            itemIndex === index
+                              ? {
+                                  ...item,
+                                  endHour: Math.min(
+                                    24,
+                                    Math.max(
+                                      1,
+                                      Number(event.target.value) || 1,
+                                    ),
+                                  ),
+                                }
+                              : item,
+                        ),
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setSettings((current) => ({
+                  ...current,
+                  reservationSlots: [
+                    ...current.reservationSlots,
+                    { startHour: 20, endHour: 22, isActive: true },
+                  ],
+                }))
+              }
+            >
+              افزودن بازه‌ی رزرو
             </Button>
           </CardContent>
         </Card>

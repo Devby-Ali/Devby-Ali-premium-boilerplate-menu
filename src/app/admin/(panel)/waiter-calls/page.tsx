@@ -25,17 +25,17 @@ interface LiveWaiterCall {
 }
 
 const STATUS_LABELS: Record<WaiterCallStatus, string> = {
-  pending: "در انتظار",
-  acknowledged: "در راه است",
-  resolved: "تکمیل شده",
+  PENDING: "در انتظار",
+  ACKNOWLEDGED: "در راه است",
+  RESOLVED: "تکمیل شده",
 };
 
 const STATUS_STYLES: Record<WaiterCallStatus, string> = {
-  pending:
+  PENDING:
     "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
-  acknowledged:
+  ACKNOWLEDGED:
     "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
-  resolved:
+  RESOLVED:
     "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400",
 };
 
@@ -112,7 +112,7 @@ export default function AdminWaiterCallsPage() {
     }
   };
 
-  const pendingCount = calls.filter((c) => c.status === "pending").length;
+  const pendingCount = calls.filter((c) => c.status === "PENDING").length;
 
   return (
     <div className="space-y-6">
@@ -161,7 +161,7 @@ export default function AdminWaiterCallsPage() {
         {calls.slice(0, 30).map((call) => (
           <Card
             key={call.id}
-            className={call.status === "pending" ? "ring-2 ring-amber-300 dark:ring-amber-700" : undefined}
+            className={call.status === "PENDING" ? "ring-2 ring-amber-300 dark:ring-amber-700" : undefined}
           >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-2">
@@ -178,25 +178,25 @@ export default function AdminWaiterCallsPage() {
                 ثبت: {relativeTime(call.createdAt)} · آخرین تغییر: {relativeTime(call.updatedAt)}
               </p>
             </CardHeader>
-            {(call.status === "pending" || call.status === "acknowledged") && (
+            {(call.status === "PENDING" || call.status === "ACKNOWLEDGED") && (
               <CardContent>
-                {call.status === "pending" && (
+                {call.status === "PENDING" && (
                   <Button
                     type="button"
                     size="sm"
                     disabled={updating === call.id}
-                    onClick={() => void updateStatus(call.id, "acknowledged")}
+                    onClick={() => void updateStatus(call.id, "ACKNOWLEDGED")}
                   >
                     {updating === call.id ? "..." : "پذیرش فراخوان"}
                   </Button>
                 )}
-                {call.status === "acknowledged" && (
+                {call.status === "ACKNOWLEDGED" && (
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
                     disabled={updating === call.id}
-                    onClick={() => void updateStatus(call.id, "resolved")}
+                    onClick={() => void updateStatus(call.id, "RESOLVED")}
                   >
                     <CheckCheck className="ml-1.5 h-3.5 w-3.5" />
                     {updating === call.id ? "..." : "تکمیل شد"}

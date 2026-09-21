@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
+import { env } from "@/lib/env";
 import "./globals.css";
 
 const vazirmatnArabic = localFont({
@@ -19,21 +20,25 @@ const vazirmatnLatin = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(env.APP_URL),
   title: {
     default: "کافه رستوران | منوی دیجیتال",
     template: "%s | کافه رستوران",
   },
-  description: "منوی دیجیتال کافه رستوران — مشاهده آیتم‌ها، دسته‌بندی‌ها و جزئیات محصولات",
+  description:
+    "منوی دیجیتال کافه رستوران — مشاهده آیتم‌ها، دسته‌بندی‌ها و جزئیات محصولات",
   openGraph: {
     title: "کافه رستوران | منوی دیجیتال",
-    description: "منوی دیجیتال کافه رستوران — مشاهده آیتم‌ها، دسته‌بندی‌ها و جزئیات محصولات",
+    description:
+      "منوی دیجیتال کافه رستوران — مشاهده آیتم‌ها، دسته‌بندی‌ها و جزئیات محصولات",
     type: "website",
     locale: "fa_IR",
   },
   twitter: {
     card: "summary_large_image",
     title: "کافه رستوران",
-    description: "منوی دیجیتال کافه رستوران — مشاهده آیتم‌ها، دسته‌بندی‌ها و جزئیات محصولات",
+    description:
+      "منوی دیجیتال کافه رستوران — مشاهده آیتم‌ها، دسته‌بندی‌ها و جزئیات محصولات",
   },
 };
 
@@ -52,7 +57,9 @@ export default function RootLayout({
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} کافه رستوران — تمامی حقوق محفوظ است</p>
+            <p>
+              © {new Date().getFullYear()} کافه رستوران — تمامی حقوق محفوظ است
+            </p>
           </footer>
         </ThemeProvider>
       </body>

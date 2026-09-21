@@ -93,6 +93,7 @@ model MenuItem {
   name            String
   slug            String      @unique
   description     String?
+  /// قیمت به ریال (IRR) — نمایش تومان فقط در UI
   price           Float
   currency        String      @default("IRR")
   imageUrl        String?
@@ -103,6 +104,7 @@ model MenuItem {
   isActive        Boolean     @default(true)
   preparationTime Int?
   tags            String[]
+  cartItems       CartItem[]
   orderItems      OrderItem[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -253,19 +255,28 @@ model Payment {
   @@map("payments")
 }
 
+/// بازه‌ی دوساعته‌ی رزرو — از پنل ادمین قابل تنظیم است
+type ReservationSlotConfig {
+  startHour Int
+  endHour   Int
+  isActive  Boolean @default(true)
+}
+
 model Setting {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  siteName       String
-  logoUrl        String?
-  primaryColor   String   @default("#2f6b4f")
-  secondaryColor String   @default("#8b233d")
-  accentColor    String   @default("#f4e3b2")
-  themeMode      String   @default("system")
-  contactPhone   String?
-  contactEmail   String?
-  address        String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                String                   @id @default(auto()) @map("_id") @db.ObjectId
+  siteName          String
+  logoUrl           String?
+  primaryColor      String                   @default("#2f6b4f")
+  secondaryColor    String                   @default("#8b233d")
+  accentColor       String                   @default("#f4e3b2")
+  themeMode         String                   @default("system")
+  contactPhone      String?
+  contactEmail      String?
+  address           String?
+  /// پیش‌فرض مطابق img_3.jpg: ۸–۱۰ تا ۲۰–۲۲
+  reservationSlots  ReservationSlotConfig[]
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
   @@map("settings")
 }

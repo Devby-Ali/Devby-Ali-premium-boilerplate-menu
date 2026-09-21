@@ -1,10 +1,15 @@
 // src/app/api/admin/waiter-calls/stream/route.ts
+// SSE فراخوان گارسون — Polling سبک هر ۲٫۵ ثانیه + Heartbeat
 import { NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { waiterCallsCol, tablesCol } from "@/server/db";
 import type { WaiterCallStatus } from "@/types";
 
-const POLL_INTERVAL = 2500;
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+const POLL_INTERVAL_MS = 2500;
+const HEARTBEAT_INTERVAL_MS = 15_000;
 const ALLOWED_ROLES = ["SuperAdmin", "Manager", "Staff"] as const;
 
 interface WaiterCallEvent {
@@ -20,7 +25,7 @@ interface WaiterCallEvent {
 export async function GET(req: NextRequest) {
   const session = await requireRole(ALLOWED_ROLES);
   if (!session) {
-    return new Response("Unauthorized", { status: 401 });
+    return Response.json({ error: "دسترسی غیرمجاز." }, { status: 401 });
   }
 
   const encoder = new TextEncoder();
@@ -28,25 +33,35 @@ export async function GET(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       let lastPoll = new Date(0);
+      let lastHeartbeat = Date.now();
       let closed = false;
 
-      req.signal.addEventListener("abort", () => {
-        closed = true;
-        controller.close();
-      });
-
-      const send = (event: string, data: unknown) => {
+      const close = () => {
         if (closed) return;
+        closed = true;
         try {
-          controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-          );
+          controller.close();
         } catch {
-          closed = true;
+          // استریم از سمت کلاینت بسته شده است
         }
       };
 
-      // ارسال رویداد اتصال اولیه
+      req.signal.addEventListener("abort", close);
+
+      const sendRaw = (chunk: string) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(chunk));
+        } catch {
+          close();
+        }
+      };
+
+      const send = (event: string, data: unknown) => {
+        sendRaw(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      };
+
+      sendRaw("retry: 5000\n\n");
       send("connected", { timestamp: new Date().toISOString() });
 
       while (!closed) {
@@ -90,13 +105,21 @@ export async function GET(req: NextRequest) {
           send("error", { message: "خطا در دریافت داده" });
         }
 
-        // انتظار تا poll بعدی
+        if (Date.now() - lastHeartbeat >= HEARTBEAT_INTERVAL_MS) {
+          sendRaw(`: ping ${new Date().toISOString()}\n\n`);
+          lastHeartbeat = Date.now();
+        }
+
         await new Promise<void>((resolve) => {
-          const timer = setTimeout(resolve, POLL_INTERVAL);
-          req.signal.addEventListener("abort", () => {
-            clearTimeout(timer);
-            resolve();
-          });
+          const timer = setTimeout(resolve, POLL_INTERVAL_MS);
+          req.signal.addEventListener(
+            "abort",
+            () => {
+              clearTimeout(timer);
+              resolve();
+            },
+            { once: true },
+          );
         });
       }
     },

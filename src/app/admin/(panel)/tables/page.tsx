@@ -59,7 +59,7 @@ interface QrDialogProps {
 
 function QrDialog({ table, baseUrl, onClose }: QrDialogProps) {
   // مسیر رسمی منوی QR — مشتری با اسکن کد وارد /t/[token] می‌شود
-  const qrUrl = `${baseUrl}/t/${table.qrToken}`;
+  const qrUrl = `${baseUrl}/t/${table.token}`;
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
   // رندر QR Code روی canvas به محض باز شدن dialog
@@ -532,7 +532,7 @@ export default function AdminTablesPage() {
             <CardContent className="space-y-3">
               {/* QR Token نمایشی */}
               <p className="truncate rounded-lg bg-stone-50 px-3 py-1.5 font-mono text-xs text-stone-500 dark:bg-stone-800 dark:text-stone-400">
-                {table.qrToken}
+                {table.token}
               </p>
 
               {/* دکمه‌ها */}

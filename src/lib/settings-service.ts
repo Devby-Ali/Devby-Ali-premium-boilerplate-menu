@@ -1,13 +1,13 @@
 // src/lib/settings-service.ts
-// Data service for site settings (MongoDB driver — see src/server/db.ts).
-
 import { ObjectId } from "mongodb";
 
-import { settingsCol, type SettingDoc } from "@/server/db";
+import {
+  DEFAULT_RESERVATION_SLOTS,
+  settingsCol,
+  type SettingDoc,
+} from "@/server/db";
+import type { ReservationSlotConfig } from "@/types";
 
-// ------------------------------------------------------------------
-// Defaults
-// ------------------------------------------------------------------
 const DEFAULT_SETTINGS = {
   siteName: "Premium Menu",
   logoUrl: null,
@@ -18,11 +18,9 @@ const DEFAULT_SETTINGS = {
   contactPhone: null,
   contactEmail: "hello@premiummenu.test",
   address: null,
+  reservationSlots: DEFAULT_RESERVATION_SLOTS,
 } as const;
 
-// ------------------------------------------------------------------
-// Types
-// ------------------------------------------------------------------
 export interface SettingsData {
   siteName: string;
   logoUrl?: string | null;
@@ -33,6 +31,7 @@ export interface SettingsData {
   contactPhone?: string | null;
   contactEmail?: string | null;
   address?: string | null;
+  reservationSlots: ReservationSlotConfig[];
 }
 
 export interface UpdateSettingsInput {
@@ -45,6 +44,16 @@ export interface UpdateSettingsInput {
   contactPhone?: string | null;
   contactEmail?: string | null;
   address?: string | null;
+  reservationSlots?: ReservationSlotConfig[];
+}
+
+function normalizeSlots(slots: ReservationSlotConfig[] | undefined): ReservationSlotConfig[] {
+  if (!slots || slots.length === 0) return [...DEFAULT_RESERVATION_SLOTS];
+  return slots.map((slot) => ({
+    startHour: slot.startHour,
+    endHour: slot.endHour,
+    isActive: slot.isActive !== false,
+  }));
 }
 
 function mapSettings(doc: SettingDoc): SettingsData {
@@ -58,19 +67,29 @@ function mapSettings(doc: SettingDoc): SettingsData {
     contactPhone: doc.contactPhone ?? null,
     contactEmail: doc.contactEmail ?? null,
     address: doc.address ?? null,
+    reservationSlots: normalizeSlots(doc.reservationSlots),
   };
 }
 
-/** Fetch the single settings document, creating it with defaults if absent. */
 async function getOrCreateSettingsDoc(): Promise<SettingDoc> {
   const col = await settingsCol();
   const existing = await col.findOne({});
-  if (existing) return existing;
+  if (existing) {
+    if (!existing.reservationSlots || existing.reservationSlots.length === 0) {
+      await col.updateOne(
+        { _id: existing._id },
+        { $set: { reservationSlots: DEFAULT_RESERVATION_SLOTS, updatedAt: new Date() } },
+      );
+      return { ...existing, reservationSlots: [...DEFAULT_RESERVATION_SLOTS] };
+    }
+    return existing;
+  }
 
   const now = new Date();
   const doc: SettingDoc = {
     _id: new ObjectId(),
     ...DEFAULT_SETTINGS,
+    reservationSlots: [...DEFAULT_RESERVATION_SLOTS],
     createdAt: now,
     updatedAt: now,
   };
@@ -78,9 +97,6 @@ async function getOrCreateSettingsDoc(): Promise<SettingDoc> {
   return doc;
 }
 
-// ------------------------------------------------------------------
-// Settings CRUD
-// ------------------------------------------------------------------
 export async function getSettings(): Promise<SettingsData> {
   const doc = await getOrCreateSettingsDoc();
   return mapSettings(doc);
@@ -99,6 +115,9 @@ export async function updateSettings(input: UpdateSettingsInput): Promise<Settin
   if (input.contactPhone !== undefined) $set.contactPhone = input.contactPhone;
   if (input.contactEmail !== undefined) $set.contactEmail = input.contactEmail;
   if (input.address !== undefined) $set.address = input.address;
+  if (input.reservationSlots !== undefined) {
+    $set.reservationSlots = normalizeSlots(input.reservationSlots);
+  }
 
   const col = await settingsCol();
   const updated = await col.findOneAndUpdate(

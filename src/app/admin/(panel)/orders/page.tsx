@@ -4,46 +4,44 @@ import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPrice } from "@/lib/price";
+import type { DeliveryType, OrderStatus } from "@/types";
 
 interface OrderItem {
   id: string;
-  status: string;
+  status: OrderStatus;
   subtotal: number;
   discount: number;
   total: number;
-  deliveryType: string;
-  paymentStatus: string;
+  deliveryType: DeliveryType;
   createdAt: string;
   updatedAt: string;
+  tableNumber?: number;
 }
 
 interface OrderStats {
-  pending: number;
-  processing: number;
-  ready: number;
-  delivered: number;
-  cancelled: number;
+  PENDING: number;
+  PROCESSING: number;
+  READY: number;
+  DELIVERED: number;
+  CANCELLED: number;
 }
 
-type StatusFilter = "all" | "pending" | "processing" | "ready" | "delivered" | "cancelled";
+type StatusFilter = "all" | OrderStatus;
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "در انتظار",
-  processing: "در حال آماده‌سازی",
-  ready: "آماده",
-  delivered: "تحویل شده",
-  cancelled: "لغو شده",
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  PENDING: "در انتظار",
+  PROCESSING: "در حال آماده‌سازی",
+  READY: "آماده",
+  DELIVERED: "تحویل شده",
+  CANCELLED: "لغو شده",
 };
 
-const DELIVERY_LABELS: Record<string, string> = {
-  dine_in: "سالن",
-  takeaway: "بیرون‌بر",
-  delivery: "پیک",
+const DELIVERY_LABELS: Record<DeliveryType, string> = {
+  DINE_IN: "سالن",
+  TAKEAWAY: "بیرون‌بر",
+  DELIVERY: "پیک",
 };
-
-function formatPrice(value: number) {
-  return `${value.toLocaleString("fa-IR")} تومان`;
-}
 
 function formatDate(iso: string) {
   try {
@@ -59,11 +57,11 @@ function formatDate(iso: string) {
 export default function AdminOrdersPage() {
   const [orders, setOrders] = React.useState<OrderItem[]>([]);
   const [stats, setStats] = React.useState<OrderStats>({
-    pending: 0,
-    processing: 0,
-    ready: 0,
-    delivered: 0,
-    cancelled: 0,
+    PENDING: 0,
+    PROCESSING: 0,
+    READY: 0,
+    DELIVERED: 0,
+    CANCELLED: 0,
   });
   const [filter, setFilter] = React.useState<StatusFilter>("all");
   const [loading, setLoading] = React.useState(true);
@@ -95,9 +93,42 @@ export default function AdminOrdersPage() {
   }, []);
 
   React.useEffect(() => {
-    void (async () => {
-      await loadData();
-    })();
+    let cancelled = false;
+
+    const run = async () => {
+      setLoading(true);
+      try {
+        const [ordersRes, statsRes] = await Promise.all([
+          fetch("/api/admin/orders", { credentials: "include" }),
+          fetch("/api/admin/orders?stats=true", { credentials: "include" }),
+        ]);
+
+        if (!cancelled) {
+          if (ordersRes.ok) {
+            const payload = await ordersRes.json();
+            if (payload?.data) setOrders(payload.data as OrderItem[]);
+          }
+          if (statsRes.ok) {
+            const payload = await statsRes.json();
+            if (payload?.data) setStats(payload.data as OrderStats);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setFeedback("در حال حاضر امکان بارگذاری سفارش‌ها وجود ندارد.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [loadData]);
 
   React.useEffect(() => {
@@ -105,7 +136,9 @@ export default function AdminOrdersPage() {
     source.addEventListener("connected", () => setLive(true));
     source.addEventListener("orders", (event) => {
       try {
-        const payload = JSON.parse((event as MessageEvent<string>).data) as OrderItem[];
+        const payload = JSON.parse(
+          (event as MessageEvent<string>).data,
+        ) as OrderItem[];
         setOrders(payload);
         setLive(true);
       } catch {
@@ -121,7 +154,7 @@ export default function AdminOrdersPage() {
     return orders.filter((o) => o.status === filter);
   }, [filter, orders]);
 
-  const handleStatusChange = async (id: string, nextStatus: string) => {
+  const handleStatusChange = async (id: string, nextStatus: OrderStatus) => {
     setUpdating(id);
     setFeedback(null);
 
@@ -133,19 +166,19 @@ export default function AdminOrdersPage() {
         body: JSON.stringify({ id, status: nextStatus }),
       });
 
-      const payload = await res.json();
+      const payload = (await res.json()) as { error?: string };
 
       if (!res.ok) {
-        throw new Error(payload?.error ?? "خطا در به‌روزرسانی وضعیت");
+        throw new Error(payload.error ?? "خطا در به‌روزرسانی وضعیت");
       }
 
       setOrders((current) =>
-        current.map((o) =>
-          o.id === id ? { ...o, status: nextStatus } : o,
-        ),
+        current.map((o) => (o.id === id ? { ...o, status: nextStatus } : o)),
       );
-    } catch (err: any) {
-      setFeedback(err?.message ?? "خطا در به‌روزرسانی وضعیت");
+    } catch (err) {
+      setFeedback(
+        err instanceof Error ? err.message : "خطا در به‌روزرسانی وضعیت",
+      );
     } finally {
       setUpdating(null);
     }
@@ -161,7 +194,7 @@ export default function AdminOrdersPage() {
           سفارش‌ها
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600 dark:text-stone-400">
-          وضعیت سفارش‌ها را در یک تجربه‌ی مدیریتی ساده و قابل‌پیگیری دنبال کنید.
+          وضعیت سفارش‌های درون‌کافه را به‌صورت لحظه‌ای پیگیری کنید.
         </p>
         <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">
           وضعیت اتصال لحظه‌ای: {live ? "فعال" : "در حال اتصال"}
@@ -173,7 +206,7 @@ export default function AdminOrdersPage() {
           <CardContent className="pt-6 text-sm text-stone-600 dark:text-stone-400">
             <p>در انتظار</p>
             <p className="mt-2 text-2xl font-semibold text-amber-600 dark:text-amber-400">
-              {stats.pending}
+              {stats.PENDING}
             </p>
           </CardContent>
         </Card>
@@ -181,7 +214,7 @@ export default function AdminOrdersPage() {
           <CardContent className="pt-6 text-sm text-stone-600 dark:text-stone-400">
             <p>در حال آماده‌سازی</p>
             <p className="mt-2 text-2xl font-semibold text-blue-600 dark:text-blue-400">
-              {stats.processing}
+              {stats.PROCESSING}
             </p>
           </CardContent>
         </Card>
@@ -189,7 +222,7 @@ export default function AdminOrdersPage() {
           <CardContent className="pt-6 text-sm text-stone-600 dark:text-stone-400">
             <p>آماده</p>
             <p className="mt-2 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
-              {stats.ready}
+              {stats.READY}
             </p>
           </CardContent>
         </Card>
@@ -197,7 +230,7 @@ export default function AdminOrdersPage() {
           <CardContent className="pt-6 text-sm text-stone-600 dark:text-stone-400">
             <p>تحویل شده</p>
             <p className="mt-2 text-2xl font-semibold text-stone-900 dark:text-stone-100">
-              {stats.delivered}
+              {stats.DELIVERED}
             </p>
           </CardContent>
         </Card>
@@ -205,7 +238,7 @@ export default function AdminOrdersPage() {
           <CardContent className="pt-6 text-sm text-stone-600 dark:text-stone-400">
             <p>لغو شده</p>
             <p className="mt-2 text-2xl font-semibold text-red-600 dark:text-red-400">
-              {stats.cancelled}
+              {stats.CANCELLED}
             </p>
           </CardContent>
         </Card>
@@ -213,7 +246,14 @@ export default function AdminOrdersPage() {
 
       <div className="flex flex-wrap gap-2">
         {(
-          ["all", "pending", "processing", "ready", "delivered", "cancelled"] as const
+          [
+            "all",
+            "PENDING",
+            "PROCESSING",
+            "READY",
+            "DELIVERED",
+            "CANCELLED",
+          ] as const
         ).map((status) => (
           <Button
             key={status}
@@ -222,9 +262,7 @@ export default function AdminOrdersPage() {
             size="sm"
             onClick={() => setFilter(status)}
           >
-            {status === "all"
-              ? "همه"
-              : STATUS_LABELS[status]}
+            {status === "all" ? "همه" : STATUS_LABELS[status]}
           </Button>
         ))}
       </div>
@@ -246,16 +284,18 @@ export default function AdminOrdersPage() {
           <Card key={order.id}>
             <CardHeader>
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <CardTitle className="text-base font-mono">{order.id}</CardTitle>
+                <CardTitle className="text-base">
+                  {order.tableNumber ? `میز ${order.tableNumber}` : order.id}
+                </CardTitle>
                 <span
                   className={`rounded-full px-3 py-1 text-sm font-medium ${
-                    order.status === "pending"
+                    order.status === "PENDING"
                       ? "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
-                      : order.status === "processing"
+                      : order.status === "PROCESSING"
                         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                        : order.status === "ready"
+                        : order.status === "READY"
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-                          : order.status === "cancelled"
+                          : order.status === "CANCELLED"
                             ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
                             : "bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300"
                   }`}
@@ -269,14 +309,9 @@ export default function AdminOrdersPage() {
                 <div className="flex flex-wrap gap-3">
                   <span>مبلغ: {formatPrice(order.total)}</span>
                   <span>
-                    پرداخت:{" "}
-                    {order.paymentStatus === "paid"
-                      ? "پرداخت شده"
-                      : order.paymentStatus === "failed"
-                        ? "ناموفق"
-                        : "در انتظار"}
+                    نوع:{" "}
+                    {DELIVERY_LABELS[order.deliveryType] ?? order.deliveryType}
                   </span>
-                  <span>نوع: {DELIVERY_LABELS[order.deliveryType] ?? order.deliveryType}</span>
                 </div>
                 <span className="text-xs text-stone-400">
                   {formatDate(order.createdAt)}
@@ -284,14 +319,16 @@ export default function AdminOrdersPage() {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                {order.status === "pending" && (
+                {order.status === "PENDING" && (
                   <>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       disabled={updating === order.id}
-                      onClick={() => handleStatusChange(order.id, "processing")}
+                      onClick={() =>
+                        void handleStatusChange(order.id, "PROCESSING")
+                      }
                     >
                       {updating === order.id ? "..." : "پذیرش"}
                     </Button>
@@ -300,30 +337,34 @@ export default function AdminOrdersPage() {
                       variant="outline"
                       size="sm"
                       disabled={updating === order.id}
-                      onClick={() => handleStatusChange(order.id, "cancelled")}
+                      onClick={() =>
+                        void handleStatusChange(order.id, "CANCELLED")
+                      }
                     >
                       {updating === order.id ? "..." : "لغو"}
                     </Button>
                   </>
                 )}
-                {order.status === "processing" && (
+                {order.status === "PROCESSING" && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     disabled={updating === order.id}
-                    onClick={() => handleStatusChange(order.id, "ready")}
+                    onClick={() => void handleStatusChange(order.id, "READY")}
                   >
                     {updating === order.id ? "..." : "آماده شد"}
                   </Button>
                 )}
-                {order.status === "ready" && (
+                {order.status === "READY" && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     disabled={updating === order.id}
-                    onClick={() => handleStatusChange(order.id, "delivered")}
+                    onClick={() =>
+                      void handleStatusChange(order.id, "DELIVERED")
+                    }
                   >
                     {updating === order.id ? "..." : "تحویل شد"}
                   </Button>

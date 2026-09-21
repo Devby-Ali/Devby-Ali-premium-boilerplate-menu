@@ -6,7 +6,7 @@ import { CalendarCheck2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type ReservationStatus = "pending" | "confirmed" | "cancelled" | "completed";
+type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
 
 interface Reservation {
   id: string;
@@ -21,10 +21,10 @@ interface Reservation {
 }
 
 const STATUS_LABELS: Record<ReservationStatus, string> = {
-  pending: "در انتظار تأیید",
-  confirmed: "تأیید شده",
-  cancelled: "لغو شده",
-  completed: "تکمیل شده",
+  PENDING: "در انتظار تأیید",
+  CONFIRMED: "تأیید شده",
+  CANCELLED: "لغو شده",
+  COMPLETED: "تکمیل شده",
 };
 
 function formatDate(iso: string): string {
@@ -51,22 +51,60 @@ export default function AdminReservationsPage() {
         data?: Reservation[];
         error?: string;
       };
-      if (!response.ok) throw new Error(payload.error ?? "دریافت رزروها انجام نشد.");
+      if (!response.ok)
+        throw new Error(payload.error ?? "دریافت رزروها انجام نشد.");
       setReservations(payload.data ?? []);
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "دریافت رزروها انجام نشد.");
+      setFeedback(
+        error instanceof Error ? error.message : "دریافت رزروها انجام نشد.",
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
   React.useEffect(() => {
-    void loadReservations();
+    let cancelled = false;
+
+    const run = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch("/api/admin/reservations", {
+          credentials: "include",
+        });
+        const payload = (await response.json()) as {
+          data?: Reservation[];
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(payload.error ?? "دریافت رزروها انجام نشد.");
+        }
+        if (!cancelled) {
+          setReservations(payload.data ?? []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setFeedback(
+            error instanceof Error ? error.message : "دریافت رزروها انجام نشد.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [loadReservations]);
 
   const updateStatus = async (
     id: string,
-    status: Exclude<ReservationStatus, "pending">,
+    status: Exclude<ReservationStatus, "PENDING">,
   ) => {
     setUpdating(id);
     setFeedback("");
@@ -90,7 +128,9 @@ export default function AdminReservationsPage() {
         ),
       );
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "تغییر وضعیت رزرو انجام نشد.");
+      setFeedback(
+        error instanceof Error ? error.message : "تغییر وضعیت رزرو انجام نشد.",
+      );
     } finally {
       setUpdating(null);
     }
@@ -107,7 +147,8 @@ export default function AdminReservationsPage() {
           مدیریت رزروها
         </h1>
         <p className="mt-3 text-sm leading-7 text-muted-foreground">
-          درخواست‌های بازه‌ی ثابت ۲۰ تا ۲۲ را بررسی و وضعیت آن‌ها را مدیریت کنید.
+          درخواست‌های بازه‌ی ثابت ۲۰ تا ۲۲ را بررسی و وضعیت آن‌ها را مدیریت
+          کنید.
         </p>
       </section>
 
@@ -130,8 +171,10 @@ export default function AdminReservationsPage() {
                   <div>
                     <CardTitle>{reservation.guestName}</CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      میز {reservation.tableNumber?.toLocaleString("fa-IR") ?? "نامشخص"} ·{" "}
-                      {reservation.guestCount.toLocaleString("fa-IR")} مهمان
+                      میز{" "}
+                      {reservation.tableNumber?.toLocaleString("fa-IR") ??
+                        "نامشخص"}{" "}
+                      · {reservation.guestCount.toLocaleString("fa-IR")} مهمان
                     </p>
                   </div>
                   <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">
@@ -149,12 +192,14 @@ export default function AdminReservationsPage() {
                     {reservation.notes}
                   </p>
                 ) : null}
-                {reservation.status === "pending" ? (
+                {reservation.status === "PENDING" ? (
                   <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       disabled={updating === reservation.id}
-                      onClick={() => void updateStatus(reservation.id, "confirmed")}
+                      onClick={() =>
+                        void updateStatus(reservation.id, "CONFIRMED")
+                      }
                     >
                       تأیید رزرو
                     </Button>
@@ -162,17 +207,21 @@ export default function AdminReservationsPage() {
                       size="sm"
                       variant="outline"
                       disabled={updating === reservation.id}
-                      onClick={() => void updateStatus(reservation.id, "cancelled")}
+                      onClick={() =>
+                        void updateStatus(reservation.id, "CANCELLED")
+                      }
                     >
                       رد درخواست
                     </Button>
                   </div>
-                ) : reservation.status === "confirmed" ? (
+                ) : reservation.status === "CONFIRMED" ? (
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={updating === reservation.id}
-                    onClick={() => void updateStatus(reservation.id, "completed")}
+                    onClick={() =>
+                      void updateStatus(reservation.id, "COMPLETED")
+                    }
                   >
                     ثبت به‌عنوان تکمیل‌شده
                   </Button>

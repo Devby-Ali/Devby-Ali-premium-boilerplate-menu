@@ -1,14 +1,10 @@
 import { ObjectId } from "mongodb";
 import { isValidJalaaliDate, toGregorian } from "jalaali-js";
 
-import {
-  reservationsCol,
-  tablesCol,
-  type ReservationDoc,
-} from "@/server/db";
+import { getSettings } from "@/lib/settings-service";
+import { reservationsCol, tablesCol, type ReservationDoc } from "@/server/db";
 import type { Reservation, ReservationStatus } from "@/types";
 
-export const RESERVATION_SLOT = "20:00-22:00";
 const TEHRAN_OFFSET_MINUTES = 210;
 
 function mapReservation(
@@ -24,17 +20,22 @@ function mapReservation(
     guestCount: reservation.guestCount,
     startTime: reservation.startTime.toISOString(),
     endTime: reservation.endTime.toISOString(),
-    status: reservation.status as ReservationStatus,
+    status: reservation.status,
     notes: reservation.notes ?? null,
     createdAt: reservation.createdAt.toISOString(),
     updatedAt: reservation.updatedAt.toISOString(),
   };
 }
 
-export function jalaliDateToSlot(date: string): {
-  startTime: Date;
-  endTime: Date;
-} | null {
+/**
+ * تبدیل تاریخ شمسی + ساعت شروع/پایان به بازه‌ی UTC.
+ * endHour همان روز است (نه روز بعد).
+ */
+export function jalaliDateToSlot(
+  date: string,
+  startHour = 20,
+  endHour = 22,
+): { startTime: Date; endTime: Date } | null {
   const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(date);
   if (!match) return null;
 
@@ -42,38 +43,79 @@ export function jalaliDateToSlot(date: string): {
   const month = Number(match[2]);
   const day = Number(match[3]);
   if (!isValidJalaaliDate(year, month, day)) return null;
+  if (startHour >= endHour || startHour < 0 || endHour > 24) return null;
 
   const startGregorian = toGregorian(year, month, day);
-  const nextDayGregorian = new Date(
-    Date.UTC(startGregorian.gy, startGregorian.gm - 1, startGregorian.gd + 1),
-  );
   const startTime = new Date(
     Date.UTC(
       startGregorian.gy,
       startGregorian.gm - 1,
       startGregorian.gd,
-      20,
+      startHour,
       0,
-    ) - TEHRAN_OFFSET_MINUTES * 60_000,
+    ) -
+      TEHRAN_OFFSET_MINUTES * 60_000,
   );
   const endTime = new Date(
     Date.UTC(
-      nextDayGregorian.getUTCFullYear(),
-      nextDayGregorian.getUTCMonth(),
-      nextDayGregorian.getUTCDate(),
-      20,
+      startGregorian.gy,
+      startGregorian.gm - 1,
+      startGregorian.gd,
+      endHour,
       0,
-    ) - TEHRAN_OFFSET_MINUTES * 60_000,
+    ) -
+      TEHRAN_OFFSET_MINUTES * 60_000,
   );
 
   return { startTime, endTime };
 }
 
+export function formatReservationSlotLabel(
+  startHour: number,
+  endHour: number,
+): string {
+  return `${String(startHour).padStart(2, "0")}:00 تا ${String(endHour).padStart(2, "0")}:00`;
+}
+
+export async function getReservationSlotsForDate(
+  date: string,
+  guestCount: number,
+): Promise<
+  Array<{
+    startHour: number;
+    endHour: number;
+    isActive: boolean;
+    available: boolean;
+    label: string;
+  }>
+> {
+  const settings = await getSettings();
+
+  return Promise.all(
+    settings.reservationSlots
+      .filter((slot) => slot.isActive)
+      .map(async (slot) => ({
+        startHour: slot.startHour,
+        endHour: slot.endHour,
+        isActive: slot.isActive,
+        available: await isReservationSlotAvailable(
+          date,
+          guestCount,
+          slot.startHour,
+          slot.endHour,
+        ),
+        label: formatReservationSlotLabel(slot.startHour, slot.endHour),
+      })),
+  );
+}
+
 export async function isReservationSlotAvailable(
   date: string,
   guestCount: number,
+  startHour = 20,
+  endHour = 22,
 ): Promise<boolean> {
-  const slot = jalaliDateToSlot(date);
+  const slot = jalaliDateToSlot(date, startHour, endHour);
   if (!slot || !Number.isInteger(guestCount) || guestCount < 1) return false;
 
   const tables = await tablesCol();
@@ -88,7 +130,7 @@ export async function isReservationSlotAvailable(
   const reservedTableIds = await reservations
     .find({
       tableId: { $in: suitableTables.map((table) => table._id) },
-      status: { $in: ["pending", "confirmed"] },
+      status: { $in: ["PENDING", "CONFIRMED"] },
       startTime: { $lt: slot.endTime },
       endTime: { $gt: slot.startTime },
     })
@@ -104,9 +146,36 @@ export async function createReservation(input: {
   guestPhone: string;
   guestCount: number;
   notes?: string | null;
+  startHour?: number;
+  endHour?: number;
 }): Promise<(Reservation & { tableNumber: number }) | null> {
-  const slot = jalaliDateToSlot(input.date);
+  const settings = await getSettings();
+  const requestedStartHour = input.startHour ?? 20;
+  const requestedEndHour = input.endHour ?? 22;
+
+  const requestedSlot = settings.reservationSlots.find(
+    (slot) =>
+      slot.isActive &&
+      slot.startHour === requestedStartHour &&
+      slot.endHour === requestedEndHour,
+  );
+
+  if (!requestedSlot) return null;
+
+  const slot = jalaliDateToSlot(
+    input.date,
+    requestedStartHour,
+    requestedEndHour,
+  );
   if (!slot) return null;
+
+  const available = await isReservationSlotAvailable(
+    input.date,
+    input.guestCount,
+    requestedStartHour,
+    requestedEndHour,
+  );
+  if (!available) return null;
 
   const tables = await tablesCol();
   const reservations = await reservationsCol();
@@ -118,7 +187,7 @@ export async function createReservation(input: {
   for (const table of suitableTables) {
     const conflict = await reservations.findOne({
       tableId: table._id,
-      status: { $in: ["pending", "confirmed"] },
+      status: { $in: ["PENDING", "CONFIRMED"] },
       startTime: { $lt: slot.endTime },
       endTime: { $gt: slot.startTime },
     });
@@ -133,13 +202,16 @@ export async function createReservation(input: {
       guestCount: input.guestCount,
       startTime: slot.startTime,
       endTime: slot.endTime,
-      status: "pending",
+      status: "PENDING",
       notes: input.notes ?? null,
       createdAt: now,
       updatedAt: now,
     };
     await reservations.insertOne(reservation);
-    return { ...mapReservation(reservation, table.number), tableNumber: table.number };
+    return {
+      ...mapReservation(reservation, table.number),
+      tableNumber: table.number,
+    };
   }
 
   return null;
@@ -154,9 +226,9 @@ export async function listReservations(): Promise<
     .find({})
     .sort({ startTime: 1, createdAt: -1 })
     .toArray();
-  const tableIds = [...new Set(documents.map((item) => item.tableId.toHexString()))].map(
-    (id) => new ObjectId(id),
-  );
+  const tableIds = [
+    ...new Set(documents.map((item) => item.tableId.toHexString())),
+  ].map((id) => new ObjectId(id));
   const tableDocuments = await tables
     .find({ _id: { $in: tableIds } })
     .project({ _id: 1, number: 1 })
@@ -166,13 +238,16 @@ export async function listReservations(): Promise<
   );
 
   return documents.map((reservation) =>
-    mapReservation(reservation, tableMap.get(reservation.tableId.toHexString())),
+    mapReservation(
+      reservation,
+      tableMap.get(reservation.tableId.toHexString()),
+    ),
   );
 }
 
 export async function updateReservationStatus(
   id: string,
-  status: Exclude<ReservationStatus, "pending">,
+  status: Exclude<ReservationStatus, "PENDING">,
 ): Promise<(Reservation & { tableNumber?: number }) | null> {
   if (!ObjectId.isValid(id)) return null;
   const reservations = await reservationsCol();
@@ -183,9 +258,8 @@ export async function updateReservationStatus(
   );
   if (!updated) return null;
 
-  const table = await (await tablesCol()).findOne(
-    { _id: updated.tableId },
-    { projection: { number: 1 } },
-  );
+  const table = await (
+    await tablesCol()
+  ).findOne({ _id: updated.tableId }, { projection: { number: 1 } });
   return mapReservation(updated, table?.number);
 }
