@@ -10,6 +10,7 @@ export const runtime = "nodejs";
 
 const POLL_INTERVAL_MS = 2500;
 const HEARTBEAT_INTERVAL_MS = 15_000;
+const MAX_EVENTS_PER_POLL = 100;
 const ALLOWED_ROLES = ["SuperAdmin", "Manager", "Staff"] as const;
 
 interface WaiterCallEvent {
@@ -28,6 +29,8 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: "دسترسی غیرمجاز." }, { status: 401 });
   }
 
+  const col = await waiterCallsCol();
+  const tCol = await tablesCol();
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -66,26 +69,25 @@ export async function GET(req: NextRequest) {
 
       while (!closed) {
         try {
-          const now = new Date();
-          const col = await waiterCallsCol();
-
           // فقط رکوردهایی که از آخرین poll تغییر کرده‌اند
           const calls = await col
             .find({
               updatedAt: { $gt: lastPoll },
             })
             .sort({ updatedAt: -1 })
+            .limit(MAX_EVENTS_PER_POLL)
             .toArray();
 
           if (calls.length > 0) {
             // join با جدول tables برای شماره میز
-            const tCol = await tablesCol();
             const tableIds = [...new Set(calls.map((c) => c.tableId))];
             const tables = await tCol
               .find({ _id: { $in: tableIds } })
               .project({ _id: 1, number: 1 })
               .toArray();
-            const tableMap = new Map(tables.map((t) => [t._id.toHexString(), t.number]));
+            const tableMap = new Map(
+              tables.map((t) => [t._id.toHexString(), t.number]),
+            );
 
             const events: WaiterCallEvent[] = calls.map((c) => ({
               id: c._id.toHexString(),
@@ -98,9 +100,13 @@ export async function GET(req: NextRequest) {
             }));
 
             send("waiter-calls", events);
+            const newestUpdate = calls.reduce(
+              (latest, call) =>
+                call.updatedAt > latest ? call.updatedAt : latest,
+              lastPoll,
+            );
+            lastPoll = newestUpdate;
           }
-
-          lastPoll = now;
         } catch {
           send("error", { message: "خطا در دریافت داده" });
         }

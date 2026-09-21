@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: "دسترسی غیرمجاز." }, { status: 401 });
   }
 
+  const orders = await ordersCol();
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -58,12 +59,14 @@ export async function GET(request: NextRequest) {
 
       while (!closed) {
         try {
-          const now = new Date();
-          const changed = await (await ordersCol()).countDocuments({
-            updatedAt: { $gt: lastUpdate },
-          });
-          if (changed > 0) send("orders", await getOrders());
-          lastUpdate = now;
+          const latestChange = await orders.findOne(
+            { updatedAt: { $gt: lastUpdate } },
+            { sort: { updatedAt: -1 }, projection: { updatedAt: 1 } },
+          );
+          if (latestChange?.updatedAt) {
+            send("orders", await getOrders());
+            lastUpdate = latestChange.updatedAt;
+          }
         } catch {
           send("stream-error", { message: "دریافت سفارش‌ها با خطا مواجه شد." });
         }

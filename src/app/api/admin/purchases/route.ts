@@ -28,7 +28,18 @@ const deleteSchema = z.object({
   id: z
     .string()
     .trim()
-    .refine((value) => ObjectId.isValid(value), { message: "شناسه نامعتبر است" }),
+    .refine((value) => ObjectId.isValid(value), {
+      message: "شناسه نامعتبر است",
+    }),
+});
+
+const updateSchema = createSchema.extend({
+  id: z
+    .string()
+    .trim()
+    .refine((value) => ObjectId.isValid(value), {
+      message: "شناسه نامعتبر است",
+    }),
 });
 
 function unauthorized() {
@@ -51,7 +62,9 @@ function mapPurchase(doc: PurchaseDoc) {
 export async function GET() {
   if (!(await requireRole(ALLOWED_ROLES))) return unauthorized();
   try {
-    const docs = await (await purchasesCol())
+    const docs = await (
+      await purchasesCol()
+    )
       .find({})
       .sort({ purchasedAt: -1 })
       .limit(200)
@@ -69,7 +82,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   if (!(await requireRole(ALLOWED_ROLES))) return unauthorized();
   try {
-    const parsed = createSchema.safeParse(await request.json().catch(() => null));
+    const parsed = createSchema.safeParse(
+      await request.json().catch(() => null),
+    );
     if (!parsed.success) {
       return NextResponse.json(
         {
@@ -104,10 +119,58 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  if (!(await requireRole(ALLOWED_ROLES))) return unauthorized();
+  try {
+    const parsed = updateSchema.safeParse(
+      await request.json().catch(() => null),
+    );
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "اطلاعات ویرایش خرید نامعتبر است.",
+          details: parsed.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const updated = await (
+      await purchasesCol()
+    ).findOneAndUpdate(
+      { _id: toObjectId(parsed.data.id)! },
+      {
+        $set: {
+          title: parsed.data.title,
+          amount: tomanToRial(parsed.data.amountToman),
+          purchasedAt: parsed.data.purchasedAt
+            ? new Date(parsed.data.purchasedAt)
+            : now,
+          notes: parsed.data.notes ?? null,
+          updatedAt: now,
+        },
+      },
+      { returnDocument: "after" },
+    );
+    if (!updated)
+      return NextResponse.json({ error: "خرید یافت نشد." }, { status: 404 });
+    return NextResponse.json({ data: mapPurchase(updated) });
+  } catch (error) {
+    console.error("[PURCHASES PUT ERROR]", error);
+    return NextResponse.json(
+      { error: "ویرایش خرید با خطا مواجه شد." },
+      { status: 500 },
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   if (!(await requireRole(ALLOWED_ROLES))) return unauthorized();
   try {
-    const parsed = deleteSchema.safeParse(await request.json().catch(() => null));
+    const parsed = deleteSchema.safeParse(
+      await request.json().catch(() => null),
+    );
     if (!parsed.success) {
       return NextResponse.json(
         { error: "شناسه خرید نامعتبر است." },

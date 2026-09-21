@@ -30,6 +30,11 @@ const quickLinks = [
     description: "به‌روزرسانی برند و متادیتا",
   },
   {
+    href: "/admin/tables",
+    title: "میز ها",
+    description: "مدیریت میزها و ظرف‌ها",
+  },
+  {
     href: "/admin/users",
     title: "کاربران",
     description: "مدیریت دسترسی‌ها و نقش‌ها",

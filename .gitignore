@@ -42,3 +42,14 @@ next-env.d.ts
 
 # local media uploads (served via /api/media/*)
 /uploads
+
+
+For_deployment.md
+
+For_qrcode-table.md
+
+AGENTS.md
+
+CLAUDE.md
+
+.agent.md

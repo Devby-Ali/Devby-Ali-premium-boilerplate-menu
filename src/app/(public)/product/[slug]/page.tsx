@@ -1,12 +1,11 @@
 ﻿// src/app/(public)/product/[slug]/page.tsx
-import * as React from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight, Clock3, Leaf, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   getMenuItemBySlug as getMenuItemBySlugFromService,
   getAllMenuItems,
@@ -66,81 +65,113 @@ export default async function ProductPage({
   if (!product) notFound();
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 lg:px-8">
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-stone-500 dark:text-stone-400">
-                {product.category?.name ?? product.category?.slug}
-              </p>
-              <CardTitle className="mt-1 text-3xl">{product.name}</CardTitle>
+    <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-14">
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <Link
+          href="/list"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition hover:text-primary"
+        >
+          <ArrowRight className="h-4 w-4" />
+          بازگشت به منو
+        </Link>
+        <span className="text-xs font-bold uppercase tracking-[0.24em] text-secondary">
+          جزئیات انتخاب
+        </span>
+      </div>
+
+      <section className="grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch">
+        <div className="glass-panel relative min-h-[25rem] overflow-hidden rounded-md lg:min-h-[38rem]">
+          {product.imageUrl ? (
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              priority
+              sizes="(min-width: 1024px) 55vw, 100vw"
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgb(154_79_47_/_0.2),transparent_65%)] text-sm text-muted-foreground">
+              بدون تصویر
             </div>
-            <Button asChild variant="outline">
-              <Link href="/list">بازگشت به منو</Link>
-            </Button>
+          )}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-6 pt-28 text-white">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/70">
+              {product.category?.name ?? product.category?.slug}
+            </p>
+            <p className="mt-2 text-sm text-white/80">
+              انتخابی دست‌ساز برای حال خوب شما
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] border border-stone-200 bg-stone-100 dark:border-stone-800 dark:bg-stone-800">
-            {product.imageUrl ? (
-              <Image
-                src={product.imageUrl}
-                alt={product.name}
-                fill
-                priority
-                sizes="(min-width: 1024px) 64rem, 100vw"
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(47,107,79,0.15),_transparent_65%)] text-sm text-stone-400 dark:text-stone-500">
-                بدون تصویر
-              </div>
-            )}
-          </div>
+        </div>
 
-          <p className="max-w-3xl text-lg leading-8 text-stone-600 dark:text-stone-400">
-            {product.description}
-          </p>
-
-          <div className="rounded-[1.25rem] border border-stone-200 bg-stone-50 p-6 dark:border-stone-800 dark:bg-stone-950/60">
-            <p className="text-3xl font-semibold text-emerald-700 dark:text-emerald-400">
-              {formatPrice(product.price)}
+        <div className="flex flex-col justify-between py-2 lg:py-8">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.25em] text-primary">
+              <Sparkles className="h-4 w-4" />
+              از منوی کافه
+            </div>
+            <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-tight text-foreground sm:text-5xl">
+              {product.name}
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-8 text-muted-foreground">
+              {product.description}
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {(product.tags ?? []).length > 0 && (
-              <div className="rounded-[1.25rem] border border-stone-200 p-6 dark:border-stone-800">
-                <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
-                  مواد تشکیل‌دهنده
-                </h3>
-                <ul className="mt-4 space-y-3 text-sm leading-7 text-stone-600 dark:text-stone-400">
-                  {(product.tags ?? []).map((tag) => (
-                    <li key={tag} className="flex items-start gap-3">
-                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-600" />
-                      <span>{tag}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          <div className="mt-10 space-y-8">
+            <div className="flex items-end justify-between gap-4 border-y border-border py-5">
+              <span className="text-sm text-muted-foreground">قیمت نهایی</span>
+              <span className="text-3xl font-semibold text-primary">
+                {formatPrice(product.price)}
+              </span>
+            </div>
 
-            {product.preparationTime != null && (
-              <div className="rounded-[1.25rem] border border-stone-200 p-6 dark:border-stone-800">
-                <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
-                  اطلاعات
-                </h3>
-                <div className="mt-4 flex flex-wrap gap-3 text-sm text-stone-500 dark:text-stone-400">
-                  <span className="rounded-full bg-stone-100 px-3 py-1 dark:bg-stone-800">
-                    زمان آماده‌سازی: {product.preparationTime} دقیقه
-                  </span>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {product.preparationTime != null ? (
+                <div className="border border-border bg-surface-raised p-4">
+                  <Clock3 className="h-5 w-5 text-accent" />
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    زمان آماده‌سازی
+                  </p>
+                  <p className="mt-1 font-semibold text-foreground">
+                    {product.preparationTime} دقیقه
+                  </p>
+                </div>
+              ) : null}
+              <div className="border border-border bg-surface-raised p-4">
+                <Leaf className="h-5 w-5 text-primary" />
+                <p className="mt-4 text-xs text-muted-foreground">وضعیت</p>
+                <p className="mt-1 font-semibold text-foreground">
+                  {product.inStock ? "موجود و آماده سفارش" : "فعلاً ناموجود"}
+                </p>
+              </div>
+            </div>
+
+            {(product.tags ?? []).length > 0 ? (
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">
+                  ترکیبات و ویژگی‌ها
+                </h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {product.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="border border-border px-3 py-1.5 text-xs text-muted-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </div>
-            )}
+            ) : null}
+
+            <Button asChild size="lg" className="w-full sm:w-auto">
+              <Link href="/list">بازگشت به انتخاب‌های منو</Link>
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </main>
   );
 }

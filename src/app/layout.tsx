@@ -54,12 +54,26 @@ export default function RootLayout({
     >
       <body className="min-h-screen antialiased flex flex-col">
         <ThemeProvider>
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:right-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:shadow-lg"
+          >
+            رفتن به محتوای اصلی
+          </a>
           <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-            <p>
-              © {new Date().getFullYear()} کافه رستوران — تمامی حقوق محفوظ است
-            </p>
+          <main id="main-content" className="flex-1">
+            {children}
+          </main>
+          <footer className="border-t border-border px-6 py-10 text-sm text-muted-foreground">
+            <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <p className="font-bold text-foreground">کافه رستوران</p>
+                <p className="mt-1 text-xs">
+                  یک تجربه‌ی ساده، دقیق و به‌یادماندنی.
+                </p>
+              </div>
+              <p>© {new Date().getFullYear()} تمامی حقوق محفوظ است</p>
+            </div>
           </footer>
         </ThemeProvider>
       </body>

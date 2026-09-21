@@ -20,14 +20,14 @@ export function SectionHeading({
 
   return (
     <div className={`space-y-3 ${alignmentClass}`}>
-      <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
+      <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">
         {eyebrow}
       </p>
-      <h2 className="text-3xl font-semibold text-stone-900 dark:text-stone-100">
+      <h2 className="text-3xl font-semibold tracking-tight text-foreground">
         {title}
       </h2>
       {description ? (
-        <p className="mx-auto max-w-2xl text-base leading-8 text-stone-600 dark:text-stone-400">
+        <p className="mx-auto max-w-2xl text-base leading-8 text-muted-foreground">
           {description}
         </p>
       ) : null}

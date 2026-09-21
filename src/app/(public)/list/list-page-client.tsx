@@ -39,7 +39,9 @@ export function ListPageClient() {
   const [activeCategory, setActiveCategory] = React.useState("all");
   const [query, setQuery] = React.useState("");
   const [items, setItems] = React.useState<MenuItemData[]>([]);
-  const [categories, setCategories] = React.useState<{ slug: string; label: string }[]>([ALL_CATEGORY]);
+  const [categories, setCategories] = React.useState<
+    { slug: string; label: string }[]
+  >([ALL_CATEGORY]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -52,7 +54,10 @@ export function ListPageClient() {
           if (payload?.categories) {
             setCategories([
               ALL_CATEGORY,
-              ...(payload.categories as CategoryData[]).map((c) => ({ slug: c.slug, label: c.name })),
+              ...(payload.categories as CategoryData[]).map((c) => ({
+                slug: c.slug,
+                label: c.name,
+              })),
             ]);
           }
         }
@@ -67,19 +72,30 @@ export function ListPageClient() {
   const filteredItems = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
-      const matchCat = activeCategory === "all" || item.category === activeCategory;
-      const matchQ = !q || [item.title, item.description, ...item.ingredients].join(" ").toLowerCase().includes(q);
+      const matchCat =
+        activeCategory === "all" || item.category === activeCategory;
+      const matchQ =
+        !q ||
+        [item.title, item.description, ...item.ingredients]
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
       return matchCat && matchQ;
     });
   }, [activeCategory, query, items]);
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-12 lg:px-8">
-      <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80 lg:p-10">
+    <main className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-10 lg:px-8 lg:py-14">
+      <section className="border-b border-border pb-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">منو</h1>
-            <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-secondary">
+              انتخاب امروز
+            </p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">
+              منوی کافه
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
               دسته‌بندی و جستجو در آیتم‌های منو
             </p>
           </div>
@@ -101,8 +117,8 @@ export function ListPageClient() {
               onClick={() => setActiveCategory(cat.slug)}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 activeCategory === cat.slug
-                  ? "bg-emerald-700 text-white"
-                  : "border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-800"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-surface text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
               {cat.label}
@@ -112,17 +128,17 @@ export function ListPageClient() {
       </section>
 
       {loading ? (
-        <p className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500 dark:border-stone-800 dark:bg-stone-900">
+        <p className="border border-border bg-surface px-4 py-3 text-sm text-muted-foreground">
           در حال بارگذاری...
         </p>
       ) : null}
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredItems.map((item) => (
-          <Card key={item.slug} className="overflow-hidden">
+          <Card key={item.slug} className="group overflow-hidden rounded-md">
             <Link
               href={`/product/${item.slug}`}
-              className="relative block aspect-[16/10] w-full overflow-hidden bg-stone-100 dark:bg-stone-800"
+              className="relative block aspect-[16/10] w-full overflow-hidden bg-surface-raised"
               aria-label={`مشاهده جزئیات ${item.title}`}
             >
               {item.imageUrl ? (
@@ -134,7 +150,7 @@ export function ListPageClient() {
                   className="object-cover transition-transform duration-300 hover:scale-105"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(47,107,79,0.15),_transparent_65%)] text-sm text-stone-400 dark:text-stone-500">
+                <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgb(154_79_47_/_0.18),transparent_65%)] text-sm text-muted-foreground">
                   بدون تصویر
                 </div>
               )}
@@ -143,22 +159,24 @@ export function ListPageClient() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <CardTitle>{item.title}</CardTitle>
-                  <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {item.categoryName || item.category}
                   </p>
                 </div>
                 {item.featured ? (
-                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                  <span className="border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent-foreground">
                     ویژه
                   </span>
                 ) : null}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm leading-7 text-stone-600 dark:text-stone-400">{item.description}</p>
-              <div className="flex items-center justify-between text-sm text-stone-500 dark:text-stone-400">
+              <p className="text-sm leading-7 text-muted-foreground">
+                {item.description}
+              </p>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>{item.prepTime} دقیقه</span>
-                <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                <span className="font-semibold text-primary">
                   {formatPrice(item.price)}
                 </span>
               </div>
@@ -171,7 +189,7 @@ export function ListPageClient() {
       </section>
 
       {!loading && filteredItems.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-stone-500 dark:text-stone-400">
+        <Card className="p-8 text-center text-sm text-muted-foreground">
           {query.trim() ? "نتیجه‌ای یافت نشد." : "آیتمی در منو ثبت نشده است."}
         </Card>
       ) : null}

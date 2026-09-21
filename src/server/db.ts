@@ -393,10 +393,24 @@ async function migrateLegacyFields(db: Db): Promise<void> {
   }
 }
 
+async function removeLegacyTableIndexes(db: Db): Promise<void> {
+  const indexes = await db.collection("tables").listIndexes().toArray();
+  const legacyIndexes = indexes.filter((index) =>
+    Object.keys(index.key ?? {}).includes("qrToken"),
+  );
+
+  await Promise.all(
+    legacyIndexes
+      .filter((index) => index.name)
+      .map((index) => db.collection("tables").dropIndex(index.name!)),
+  );
+}
+
 async function ensureIndexes(db: Db): Promise<void> {
   if (globalForMongo.mongoIndexesEnsured) return;
   globalForMongo.mongoIndexesEnsured = true;
 
+  await removeLegacyTableIndexes(db);
   await migrateLegacyFields(db);
 
   await Promise.all([
@@ -417,6 +431,7 @@ async function ensureIndexes(db: Db): Promise<void> {
     db.collection("tables").createIndex({ token: 1 }, { unique: true }),
 
     db.collection("waiter_calls").createIndex({ tableId: 1, status: 1 }),
+    db.collection("waiter_calls").createIndex({ updatedAt: 1 }),
 
     db.collection("reservations").createIndex({ tableId: 1, startTime: 1 }),
     db.collection("reservations").createIndex({ startTime: 1, endTime: 1 }),
@@ -424,6 +439,7 @@ async function ensureIndexes(db: Db): Promise<void> {
     db.collection("orders").createIndex({ userId: 1, createdAt: 1 }),
     db.collection("orders").createIndex({ tableId: 1, createdAt: 1 }),
     db.collection("orders").createIndex({ status: 1, createdAt: 1 }),
+    db.collection("orders").createIndex({ updatedAt: 1 }),
 
     db.collection("order_items").createIndex({ orderId: 1 }),
     db.collection("order_items").createIndex({ menuItemId: 1 }),

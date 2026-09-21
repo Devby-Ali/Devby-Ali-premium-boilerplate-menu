@@ -16,7 +16,7 @@ function useMounted() {
   return React.useSyncExternalStore(
     () => () => {},
     () => true,
-    () => false
+    () => false,
   );
 }
 
@@ -34,7 +34,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   return (
     <button
       type="button"
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={isDark ? "فعال‌کردن پوسته روشن" : "فعال‌کردن پوسته تاریک"}
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className={cn(
         "inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background/80 text-foreground shadow-sm transition hover:bg-muted dark:shadow-none",
@@ -42,7 +42,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       )}
     >
       {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      <span className="sr-only">Toggle theme</span>
+      <span className="sr-only">تغییر پوسته</span>
     </button>
   );
 }

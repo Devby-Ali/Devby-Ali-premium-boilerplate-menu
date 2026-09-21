@@ -49,11 +49,11 @@ export function WaiterCallButton({ tableId, tableNumber }: Props) {
         onClick={handleCall}
         disabled={state === "loading" || state === "sent"}
         size="lg"
-        className={`rounded-full px-8 shadow-lg transition-all ${
+        className={`rounded-md border border-white/20 px-8 shadow-lg transition-all ${
           state === "sent"
-            ? "bg-green-600 hover:bg-green-600 text-white"
+            ? "bg-primary hover:bg-primary text-primary-foreground"
             : state === "error"
-              ? "bg-destructive hover:bg-destructive text-destructive-foreground"
+              ? "bg-secondary hover:bg-secondary text-secondary-foreground"
               : ""
         }`}
       >

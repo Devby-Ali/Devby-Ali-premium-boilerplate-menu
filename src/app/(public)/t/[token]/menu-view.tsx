@@ -105,7 +105,7 @@ export function MenuView({
 
   return (
     <div className="relative min-h-screen">
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
+      <div className="glass-panel sticky top-0 z-10 border-x-0 border-t-0 px-4 py-3">
         <p className="text-sm text-muted-foreground">
           میز شماره{" "}
           <span className="font-bold text-foreground">{tableNumber}</span>
@@ -156,7 +156,7 @@ export function MenuView({
       </div>
 
       {draft.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur">
+        <div className="glass-panel fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 p-4">
           <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
             <div>
               <p className="text-sm text-muted-foreground">
@@ -195,7 +195,7 @@ function MenuItemCard({
   onChange: (change: number) => void;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div className="glass-panel group overflow-hidden rounded-md border transition-transform duration-300 hover:-translate-y-0.5">
       {item.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img

@@ -4,7 +4,7 @@
 "use client";
 
 import * as React from "react";
-import { BarChart3, Plus, Trash2 } from "lucide-react";
+import { BarChart3, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,13 @@ function formatDate(iso?: string) {
   }
 }
 
+function formatInputDate(iso?: string) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
 // ─── بخش ثبت/مدیریت خرید یا هزینه ────────────────────────────────────────────
 
 interface FinanceSectionProps {
@@ -61,13 +68,19 @@ interface FinanceSectionProps {
   dateField: "purchasedAt" | "spentAt";
 }
 
-function FinanceSection({ kind, title, description, dateField }: FinanceSectionProps) {
+function FinanceSection({
+  kind,
+  title,
+  description,
+  dateField,
+}: FinanceSectionProps) {
   const endpoint = `/api/admin/${kind}`;
   const [entries, setEntries] = React.useState<FinanceEntry[]>([]);
   const [entryTitle, setEntryTitle] = React.useState("");
   const [amountToman, setAmountToman] = React.useState("");
   const [entryDate, setEntryDate] = React.useState("");
   const [entryNotes, setEntryNotes] = React.useState("");
+  const [editingId, setEditingId] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [feedback, setFeedback] = React.useState<string | null>(null);
 
@@ -92,7 +105,15 @@ function FinanceSection({ kind, title, description, dateField }: FinanceSectionP
     };
   }, [endpoint]);
 
-  const handleAdd = async (event: React.FormEvent) => {
+  const resetForm = () => {
+    setEntryTitle("");
+    setAmountToman("");
+    setEntryDate("");
+    setEntryNotes("");
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const amount = Number(amountToman);
     if (!entryTitle.trim() || Number.isNaN(amount) || amount <= 0) {
@@ -104,12 +125,13 @@ function FinanceSection({ kind, title, description, dateField }: FinanceSectionP
     setFeedback(null);
     try {
       const response = await fetch(endpoint, {
-        method: "POST",
+        method: editingId ? "PUT" : "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: entryTitle.trim(),
           amountToman: amount,
+          ...(editingId ? { id: editingId } : {}),
           [dateField]: entryDate || undefined,
           notes: entryNotes.trim() || null,
         }),
@@ -121,17 +143,33 @@ function FinanceSection({ kind, title, description, dateField }: FinanceSectionP
       if (!response.ok || !payload.data) {
         throw new Error(payload.error ?? "ثبت با خطا مواجه شد.");
       }
-      setEntries((current) => [payload.data!, ...current]);
-      setEntryTitle("");
-      setAmountToman("");
-      setEntryDate("");
-      setEntryNotes("");
-      setFeedback("با موفقیت ثبت شد.");
+      setEntries((current) =>
+        editingId
+          ? current.map((entry) =>
+              entry.id === editingId ? payload.data! : entry,
+            )
+          : [payload.data!, ...current],
+      );
+      resetForm();
+      setFeedback(
+        editingId ? "ویرایش با موفقیت انجام شد." : "با موفقیت ثبت شد.",
+      );
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "ثبت با خطا مواجه شد.");
+      setFeedback(
+        error instanceof Error ? error.message : "ثبت با خطا مواجه شد.",
+      );
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const startEditing = (entry: FinanceEntry) => {
+    setEditingId(entry.id);
+    setEntryTitle(entry.title);
+    setAmountToman(String(Math.floor(entry.amount / 10)));
+    setEntryDate(formatInputDate(entry.purchasedAt ?? entry.spentAt));
+    setEntryNotes(entry.notes ?? "");
+    setFeedback(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -149,7 +187,9 @@ function FinanceSection({ kind, title, description, dateField }: FinanceSectionP
       }
       setEntries((current) => current.filter((entry) => entry.id !== id));
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "حذف با خطا مواجه شد.");
+      setFeedback(
+        error instanceof Error ? error.message : "حذف با خطا مواجه شد.",
+      );
     }
   };
 
@@ -161,7 +201,7 @@ function FinanceSection({ kind, title, description, dateField }: FinanceSectionP
       </CardHeader>
       <CardContent className="space-y-5">
         <form
-          onSubmit={handleAdd}
+          onSubmit={handleSubmit}
           className="grid gap-3 rounded-2xl border border-stone-200 p-4 dark:border-stone-800 sm:grid-cols-2"
         >
           <div className="space-y-1.5">
@@ -204,8 +244,23 @@ function FinanceSection({ kind, title, description, dateField }: FinanceSectionP
           <div className="sm:col-span-2">
             <Button type="submit" size="sm" disabled={submitting}>
               <Plus className="ml-1.5 h-4 w-4" />
-              {submitting ? "در حال ثبت..." : "ثبت"}
+              {submitting
+                ? "در حال ذخیره..."
+                : editingId
+                  ? "ذخیره ویرایش"
+                  : "ثبت"}
             </Button>
+            {editingId ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={resetForm}
+              >
+                <X className="ml-1.5 h-4 w-4" />
+                انصراف
+              </Button>
+            ) : null}
           </div>
         </form>
 
@@ -228,7 +283,18 @@ function FinanceSection({ kind, title, description, dateField }: FinanceSectionP
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
-                <span className="font-semibold">{formatPrice(entry.amount)}</span>
+                <span className="font-semibold">
+                  {formatPrice(entry.amount)}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => startEditing(entry)}
+                  aria-label={`ویرایش ${entry.title}`}
+                >
+                  <Pencil className="h-4 w-4 text-primary" />
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"
@@ -242,7 +308,9 @@ function FinanceSection({ kind, title, description, dateField }: FinanceSectionP
             </li>
           ))}
           {entries.length === 0 ? (
-            <li className="text-sm text-muted-foreground">رکوردی ثبت نشده است.</li>
+            <li className="text-sm text-muted-foreground">
+              رکوردی ثبت نشده است.
+            </li>
           ) : null}
         </ul>
       </CardContent>
@@ -297,7 +365,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
+      <section className="rounded-4xl border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
         <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
           Business Intelligence
         </p>
