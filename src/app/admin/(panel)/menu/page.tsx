@@ -6,7 +6,13 @@ import * as React from "react";
 import { ImagePlus, Layers3, Plus, Search, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatPrice, rialToToman } from "@/lib/price";
@@ -45,7 +51,8 @@ interface AdminCategory {
   count: number;
 }
 
-const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/avif,image/gif";
+const ACCEPTED_IMAGE_TYPES =
+  "image/jpeg,image/png,image/webp,image/avif,image/gif";
 const MAX_UPLOAD_MB = 5;
 
 // ─── کمک‌تابع‌ها ──────────────────────────────────────────────────────────────
@@ -123,7 +130,9 @@ const createCategoryDraft = (): CategoryDraft => ({
 // ─── صفحه ────────────────────────────────────────────────────────────────────
 
 export default function AdminMenuPage() {
-  const [activeTab, setActiveTab] = React.useState<"items" | "categories">("items");
+  const [activeTab, setActiveTab] = React.useState<"items" | "categories">(
+    "items",
+  );
   const [query, setQuery] = React.useState("");
   const [items, setItems] = React.useState<AdminMenuItem[]>([]);
   const [categories, setCategories] = React.useState<AdminCategory[]>([]);
@@ -131,9 +140,12 @@ export default function AdminMenuPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [itemDraft, setItemDraft] = React.useState<ItemDraft>(createItemDraft);
-  const [categoryDraft, setCategoryDraft] = React.useState<CategoryDraft>(createCategoryDraft);
+  const [categoryDraft, setCategoryDraft] =
+    React.useState<CategoryDraft>(createCategoryDraft);
   const [editingItemId, setEditingItemId] = React.useState<string | null>(null);
-  const [editingCategoryId, setEditingCategoryId] = React.useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = React.useState<
+    string | null
+  >(null);
   const [showItemComposer, setShowItemComposer] = React.useState(false);
   const [showCategoryComposer, setShowCategoryComposer] = React.useState(false);
   const [feedback, setFeedback] = React.useState<string | null>(null);
@@ -145,7 +157,8 @@ export default function AdminMenuPage() {
       if (response.ok) {
         const payload = await response.json();
         if (payload?.data) setItems(payload.data as AdminMenuItem[]);
-        if (payload?.categories) setCategories(payload.categories as AdminCategory[]);
+        if (payload?.categories)
+          setCategories(payload.categories as AdminCategory[]);
       } else {
         const err = await response.json().catch(() => ({}));
         throw new Error(err?.error ?? "خطا در دریافت داده‌ها");
@@ -168,7 +181,12 @@ export default function AdminMenuPage() {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return items;
     return items.filter((item) =>
-      [item.name, item.description, item.categoryName ?? "", item.tags.join(" ")]
+      [
+        item.name,
+        item.description,
+        item.categoryName ?? "",
+        item.tags.join(" "),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(normalized),
@@ -185,7 +203,9 @@ export default function AdminMenuPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -213,10 +233,15 @@ export default function AdminMenuPage() {
         throw new Error(payload?.error ?? "آپلود تصویر با خطا مواجه شد.");
       }
 
-      setItemDraft((current) => ({ ...current, imageUrl: payload.data.url as string }));
+      setItemDraft((current) => ({
+        ...current,
+        imageUrl: payload.data.url as string,
+      }));
       setFeedback("تصویر آپلود شد. برای نهایی شدن، آیتم را ذخیره کنید.");
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "آپلود تصویر با خطا مواجه شد.");
+      setFeedback(
+        error instanceof Error ? error.message : "آپلود تصویر با خطا مواجه شد.",
+      );
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -229,7 +254,9 @@ export default function AdminMenuPage() {
     const name = itemDraft.name.trim();
     const description = itemDraft.description.trim();
     const priceToman = Number(itemDraft.priceToman);
-    const prepTime = itemDraft.prepTime.trim() ? Number(itemDraft.prepTime) : null;
+    const prepTime = itemDraft.prepTime.trim()
+      ? Number(itemDraft.prepTime)
+      : null;
 
     if (!name || !description || !itemDraft.categoryId) {
       setFeedback("عنوان، توضیحات و دسته‌بندی الزامی هستند.");
@@ -275,7 +302,9 @@ export default function AdminMenuPage() {
 
       if (editingItemId) {
         setItems((current) =>
-          current.map((currentItem) => (currentItem.id === editingItemId ? item : currentItem)),
+          current.map((currentItem) =>
+            currentItem.id === editingItemId ? item : currentItem,
+          ),
         );
         setFeedback("آیتم با موفقیت به‌روزرسانی شد.");
       } else {
@@ -350,7 +379,9 @@ export default function AdminMenuPage() {
       }
       const updated = payload.data as AdminMenuItem;
       setItems((current) =>
-        current.map((currentItem) => (currentItem.id === item.id ? updated : currentItem)),
+        current.map((currentItem) =>
+          currentItem.id === item.id ? updated : currentItem,
+        ),
       );
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "خطایی رخ داد.");
@@ -424,7 +455,9 @@ export default function AdminMenuPage() {
       // لیست دسته‌ها را تازه می‌کنیم تا count و وضعیت زمان‌بندی دقیق باشد
       await loadItems();
       resetCategoryComposer();
-      setFeedback(editingCategoryId ? "دسته‌بندی به‌روزرسانی شد." : "دسته‌بندی ایجاد شد.");
+      setFeedback(
+        editingCategoryId ? "دسته‌بندی به‌روزرسانی شد." : "دسته‌بندی ایجاد شد.",
+      );
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "خطایی رخ داد.");
     } finally {
@@ -433,7 +466,12 @@ export default function AdminMenuPage() {
   };
 
   const handleCategoryDelete = async (category: AdminCategory) => {
-    if (!confirm(`دسته‌بندی «${category.name}» غیرفعال شود؟ آیتم‌های آن دیگر نمایش داده نمی‌شوند.`)) return;
+    if (
+      !confirm(
+        `دسته‌بندی «${category.name}» غیرفعال شود؟ آیتم‌های آن دیگر نمایش داده نمی‌شوند.`,
+      )
+    )
+      return;
 
     setSubmitting(true);
     setFeedback(null);
@@ -460,7 +498,7 @@ export default function AdminMenuPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
+      <section className="admin-hero rounded-md p-6 sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
           Content Manager
         </p>
@@ -468,8 +506,8 @@ export default function AdminMenuPage() {
           مدیریت منو
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600 dark:text-stone-400">
-          آیتم‌ها، وضعیت موجودی و دسته‌بندی‌ها (همراه با زمان‌بندی نمایش) را مدیریت
-          کنید. قیمت‌ها به تومان وارد می‌شوند.
+          آیتم‌ها، وضعیت موجودی و دسته‌بندی‌ها (همراه با زمان‌بندی نمایش) را
+          مدیریت کنید. قیمت‌ها به تومان وارد می‌شوند.
         </p>
       </section>
 
@@ -494,7 +532,10 @@ export default function AdminMenuPage() {
       </div>
 
       {feedback ? (
-        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-400" aria-live="polite">
+        <p
+          className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-400"
+          aria-live="polite"
+        >
           {feedback}
         </p>
       ) : null}
@@ -549,8 +590,12 @@ export default function AdminMenuPage() {
           {showItemComposer && (
             <Card>
               <CardHeader>
-                <CardTitle>{editingItemId ? "ویرایش آیتم" : "افزودن آیتم جدید"}</CardTitle>
-                <CardDescription>فیلدهای الزامی را پر کرده و ذخیره کنید.</CardDescription>
+                <CardTitle>
+                  {editingItemId ? "ویرایش آیتم" : "افزودن آیتم جدید"}
+                </CardTitle>
+                <CardDescription>
+                  فیلدهای الزامی را پر کرده و ذخیره کنید.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleItemSubmit} className="space-y-6">
@@ -560,7 +605,12 @@ export default function AdminMenuPage() {
                       <Input
                         id="menu-name"
                         value={itemDraft.name}
-                        onChange={(event) => setItemDraft((current) => ({ ...current, name: event.target.value }))}
+                        onChange={(event) =>
+                          setItemDraft((current) => ({
+                            ...current,
+                            name: event.target.value,
+                          }))
+                        }
                       />
                     </div>
 
@@ -569,7 +619,12 @@ export default function AdminMenuPage() {
                       <select
                         id="menu-category"
                         value={itemDraft.categoryId}
-                        onChange={(event) => setItemDraft((current) => ({ ...current, categoryId: event.target.value }))}
+                        onChange={(event) =>
+                          setItemDraft((current) => ({
+                            ...current,
+                            categoryId: event.target.value,
+                          }))
+                        }
                         className="w-full rounded-2xl border border-stone-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-stone-700"
                       >
                         {categories.map((category) => (
@@ -585,7 +640,12 @@ export default function AdminMenuPage() {
                       <Input
                         id="menu-desc"
                         value={itemDraft.description}
-                        onChange={(event) => setItemDraft((current) => ({ ...current, description: event.target.value }))}
+                        onChange={(event) =>
+                          setItemDraft((current) => ({
+                            ...current,
+                            description: event.target.value,
+                          }))
+                        }
                       />
                     </div>
 
@@ -596,28 +656,47 @@ export default function AdminMenuPage() {
                         type="number"
                         min={1}
                         value={itemDraft.priceToman}
-                        onChange={(event) => setItemDraft((current) => ({ ...current, priceToman: event.target.value }))}
+                        onChange={(event) =>
+                          setItemDraft((current) => ({
+                            ...current,
+                            priceToman: event.target.value,
+                          }))
+                        }
                         placeholder="مثال: ۱۸۵۰۰۰"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="menu-prep">زمان آماده‌سازی (دقیقه — اختیاری)</Label>
+                      <Label htmlFor="menu-prep">
+                        زمان آماده‌سازی (دقیقه — اختیاری)
+                      </Label>
                       <Input
                         id="menu-prep"
                         type="number"
                         min={1}
                         value={itemDraft.prepTime}
-                        onChange={(event) => setItemDraft((current) => ({ ...current, prepTime: event.target.value }))}
+                        onChange={(event) =>
+                          setItemDraft((current) => ({
+                            ...current,
+                            prepTime: event.target.value,
+                          }))
+                        }
                       />
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="menu-tags">برچسب‌ها (با ویرگول جدا کنید — اختیاری)</Label>
+                      <Label htmlFor="menu-tags">
+                        برچسب‌ها (با ویرگول جدا کنید — اختیاری)
+                      </Label>
                       <Input
                         id="menu-tags"
                         value={itemDraft.tagsText}
-                        onChange={(event) => setItemDraft((current) => ({ ...current, tagsText: event.target.value }))}
+                        onChange={(event) =>
+                          setItemDraft((current) => ({
+                            ...current,
+                            tagsText: event.target.value,
+                          }))
+                        }
                         placeholder="مثال: داغ، گیاهی"
                       />
                     </div>
@@ -655,7 +734,11 @@ export default function AdminMenuPage() {
                             disabled={uploading || submitting}
                             onClick={() => fileInputRef.current?.click()}
                           >
-                            {uploading ? "در حال آپلود..." : itemDraft.imageUrl ? "تغییر تصویر" : "آپلود تصویر"}
+                            {uploading
+                              ? "در حال آپلود..."
+                              : itemDraft.imageUrl
+                                ? "تغییر تصویر"
+                                : "آپلود تصویر"}
                           </Button>
                           {itemDraft.imageUrl && (
                             <Button
@@ -663,14 +746,20 @@ export default function AdminMenuPage() {
                               variant="ghost"
                               size="sm"
                               disabled={uploading || submitting}
-                              onClick={() => setItemDraft((current) => ({ ...current, imageUrl: null }))}
+                              onClick={() =>
+                                setItemDraft((current) => ({
+                                  ...current,
+                                  imageUrl: null,
+                                }))
+                              }
                             >
                               <Trash2 className="ml-1 h-4 w-4" />
                               حذف تصویر
                             </Button>
                           )}
                           <p className="text-xs text-stone-500 dark:text-stone-400">
-                            فرمت‌های مجاز: jpg، png، webp، avif، gif — حداکثر {MAX_UPLOAD_MB} مگابایت
+                            فرمت‌های مجاز: jpg، png، webp، avif، gif — حداکثر{" "}
+                            {MAX_UPLOAD_MB} مگابایت
                           </p>
                         </div>
                       </div>
@@ -681,7 +770,12 @@ export default function AdminMenuPage() {
                         <input
                           type="checkbox"
                           checked={itemDraft.inStock}
-                          onChange={(event) => setItemDraft((current) => ({ ...current, inStock: event.target.checked }))}
+                          onChange={(event) =>
+                            setItemDraft((current) => ({
+                              ...current,
+                              inStock: event.target.checked,
+                            }))
+                          }
                           className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         موجود است
@@ -690,7 +784,12 @@ export default function AdminMenuPage() {
                         <input
                           type="checkbox"
                           checked={itemDraft.isFeatured}
-                          onChange={(event) => setItemDraft((current) => ({ ...current, isFeatured: event.target.checked }))}
+                          onChange={(event) =>
+                            setItemDraft((current) => ({
+                              ...current,
+                              isFeatured: event.target.checked,
+                            }))
+                          }
                           className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         آیتم ویژه
@@ -699,9 +798,18 @@ export default function AdminMenuPage() {
 
                     <div className="flex flex-wrap gap-3 md:col-span-2">
                       <Button type="submit" disabled={submitting || uploading}>
-                        {submitting ? "در حال ذخیره..." : editingItemId ? "ذخیره تغییرات" : "افزودن آیتم"}
+                        {submitting
+                          ? "در حال ذخیره..."
+                          : editingItemId
+                            ? "ذخیره تغییرات"
+                            : "افزودن آیتم"}
                       </Button>
-                      <Button type="button" variant="outline" onClick={resetItemComposer} disabled={submitting}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={resetItemComposer}
+                        disabled={submitting}
+                      >
                         انصراف
                       </Button>
                     </div>
@@ -719,7 +827,10 @@ export default function AdminMenuPage() {
 
           <section className="grid gap-6">
             {filteredItems.map((item) => (
-              <Card key={item.id} className={!item.isActive ? "opacity-60" : undefined}>
+              <Card
+                key={item.id}
+                className={!item.isActive ? "opacity-60" : undefined}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="flex items-start gap-4">
@@ -739,7 +850,9 @@ export default function AdminMenuPage() {
                       )}
                       <div>
                         <CardTitle className="text-xl">{item.name}</CardTitle>
-                        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{item.slug}</p>
+                        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+                          {item.slug}
+                        </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {item.isFeatured && (
                             <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
@@ -772,10 +885,20 @@ export default function AdminMenuPage() {
                       >
                         {item.inStock ? "اعلام ناموجودی" : "اعلام موجودی"}
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleItemEdit(item)} disabled={submitting}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleItemEdit(item)}
+                        disabled={submitting}
+                      >
                         ویرایش
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => void handleItemDelete(item.id)} disabled={submitting}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleItemDelete(item.id)}
+                        disabled={submitting}
+                      >
                         حذف
                       </Button>
                     </div>
@@ -792,7 +915,8 @@ export default function AdminMenuPage() {
                     </span>
                     {item.preparationTime ? (
                       <span className="rounded-full bg-stone-100 px-3 py-1 dark:bg-stone-800">
-                        زمان آماده‌سازی: {item.preparationTime.toLocaleString("fa-IR")} دقیقه
+                        زمان آماده‌سازی:{" "}
+                        {item.preparationTime.toLocaleString("fa-IR")} دقیقه
                       </span>
                     ) : null}
                     {item.tags.length > 0 && (
@@ -807,7 +931,9 @@ export default function AdminMenuPage() {
 
             {!loading && filteredItems.length === 0 && (
               <Card className="p-8 text-center text-sm text-stone-600 dark:text-stone-400">
-                {query.trim() ? "هیچ آیتمی با این جستجو یافت نشد." : "هنوز آیتمی اضافه نشده است. از دکمه «افزودن آیتم» استفاده کنید."}
+                {query.trim()
+                  ? "هیچ آیتمی با این جستجو یافت نشد."
+                  : "هنوز آیتمی اضافه نشده است. از دکمه «افزودن آیتم» استفاده کنید."}
               </Card>
             )}
           </section>
@@ -835,9 +961,14 @@ export default function AdminMenuPage() {
           {showCategoryComposer && (
             <Card>
               <CardHeader>
-                <CardTitle>{editingCategoryId ? "ویرایش دسته‌بندی" : "افزودن دسته‌بندی جدید"}</CardTitle>
+                <CardTitle>
+                  {editingCategoryId
+                    ? "ویرایش دسته‌بندی"
+                    : "افزودن دسته‌بندی جدید"}
+                </CardTitle>
                 <CardDescription>
-                  با تعیین بازه‌ی زمان‌بندی، دسته فقط در همان بازه در منوی عمومی نمایش داده می‌شود (مناسب آیتم‌های فصلی/مناسبتی).
+                  با تعیین بازه‌ی زمان‌بندی، دسته فقط در همان بازه در منوی عمومی
+                  نمایش داده می‌شود (مناسب آیتم‌های فصلی/مناسبتی).
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -853,7 +984,9 @@ export default function AdminMenuPage() {
                             ...current,
                             name: event.target.value,
                             // اسلاگ فقط تا وقتی خودکار پر می‌شود که کاربر دستی تغییرش نداده باشد
-                            slug: editingCategoryId ? current.slug : slugify(event.target.value),
+                            slug: editingCategoryId
+                              ? current.slug
+                              : slugify(event.target.value),
                           }))
                         }
                       />
@@ -864,7 +997,12 @@ export default function AdminMenuPage() {
                         id="cat-slug"
                         dir="ltr"
                         value={categoryDraft.slug}
-                        onChange={(event) => setCategoryDraft((current) => ({ ...current, slug: event.target.value }))}
+                        onChange={(event) =>
+                          setCategoryDraft((current) => ({
+                            ...current,
+                            slug: event.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
@@ -872,7 +1010,12 @@ export default function AdminMenuPage() {
                       <Input
                         id="cat-desc"
                         value={categoryDraft.description}
-                        onChange={(event) => setCategoryDraft((current) => ({ ...current, description: event.target.value }))}
+                        onChange={(event) =>
+                          setCategoryDraft((current) => ({
+                            ...current,
+                            description: event.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -882,7 +1025,12 @@ export default function AdminMenuPage() {
                         type="number"
                         min={0}
                         value={categoryDraft.sortOrder}
-                        onChange={(event) => setCategoryDraft((current) => ({ ...current, sortOrder: event.target.value }))}
+                        onChange={(event) =>
+                          setCategoryDraft((current) => ({
+                            ...current,
+                            sortOrder: event.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div className="flex items-end pb-1">
@@ -890,35 +1038,63 @@ export default function AdminMenuPage() {
                         <input
                           type="checkbox"
                           checked={categoryDraft.isActive}
-                          onChange={(event) => setCategoryDraft((current) => ({ ...current, isActive: event.target.checked }))}
+                          onChange={(event) =>
+                            setCategoryDraft((current) => ({
+                              ...current,
+                              isActive: event.target.checked,
+                            }))
+                          }
                           className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         دسته فعال است
                       </label>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="cat-from">زمان‌بندی — شروع نمایش (اختیاری)</Label>
+                      <Label htmlFor="cat-from">
+                        زمان‌بندی — شروع نمایش (اختیاری)
+                      </Label>
                       <Input
                         id="cat-from"
                         type="datetime-local"
                         value={categoryDraft.scheduledFrom}
-                        onChange={(event) => setCategoryDraft((current) => ({ ...current, scheduledFrom: event.target.value }))}
+                        onChange={(event) =>
+                          setCategoryDraft((current) => ({
+                            ...current,
+                            scheduledFrom: event.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="cat-to">زمان‌بندی — پایان نمایش (اختیاری)</Label>
+                      <Label htmlFor="cat-to">
+                        زمان‌بندی — پایان نمایش (اختیاری)
+                      </Label>
                       <Input
                         id="cat-to"
                         type="datetime-local"
                         value={categoryDraft.scheduledTo}
-                        onChange={(event) => setCategoryDraft((current) => ({ ...current, scheduledTo: event.target.value }))}
+                        onChange={(event) =>
+                          setCategoryDraft((current) => ({
+                            ...current,
+                            scheduledTo: event.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div className="flex flex-wrap gap-3 md:col-span-2">
                       <Button type="submit" disabled={submitting}>
-                        {submitting ? "در حال ذخیره..." : editingCategoryId ? "ذخیره تغییرات" : "افزودن دسته‌بندی"}
+                        {submitting
+                          ? "در حال ذخیره..."
+                          : editingCategoryId
+                            ? "ذخیره تغییرات"
+                            : "افزودن دسته‌بندی"}
                       </Button>
-                      <Button type="button" variant="outline" onClick={resetCategoryComposer} disabled={submitting}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={resetCategoryComposer}
+                        disabled={submitting}
+                      >
                         انصراف
                       </Button>
                     </div>
@@ -930,7 +1106,10 @@ export default function AdminMenuPage() {
 
           <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {categories.map((category) => (
-              <Card key={category.id} className={!category.isActive ? "opacity-60" : undefined}>
+              <Card
+                key={category.id}
+                className={!category.isActive ? "opacity-60" : undefined}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{category.name}</CardTitle>
@@ -939,7 +1118,8 @@ export default function AdminMenuPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-stone-500 dark:text-stone-400">
-                    {category.count.toLocaleString("fa-IR")} آیتم · اسلاگ: <span dir="ltr">{category.slug}</span>
+                    {category.count.toLocaleString("fa-IR")} آیتم · اسلاگ:{" "}
+                    <span dir="ltr">{category.slug}</span>
                   </p>
                   <div className="flex flex-wrap gap-2 text-xs">
                     <span
@@ -969,7 +1149,12 @@ export default function AdminMenuPage() {
                     </p>
                   ) : null}
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleCategoryEdit(category)} disabled={submitting}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCategoryEdit(category)}
+                      disabled={submitting}
+                    >
                       ویرایش
                     </Button>
                     <Button

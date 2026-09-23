@@ -30,7 +30,7 @@ const pillars = [
 export default function AboutPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-10 lg:px-8 lg:py-16">
-      <section className="grid gap-12 border-b border-border pb-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+      <section className="grid gap-8 border-b border-border/80 pb-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
         <div className="space-y-7">
           <SectionHeading
             eyebrow="داستان ما"
@@ -47,8 +47,8 @@ export default function AboutPage() {
           </div>
         </div>
 
-        <div className="glass-panel rounded-md p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-secondary">
+        <div className="glass-panel rounded-[1.3rem] p-6">
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-secondary">
             قانون ساده ما
           </p>
           <p className="mt-4 text-2xl font-semibold leading-relaxed text-foreground">
@@ -65,9 +65,11 @@ export default function AboutPage() {
         {pillars.map((pillar, index) => (
           <article
             key={pillar.title}
-            className="border-s border-border px-5 py-2 first:border-0"
+            className="rounded-[1.2rem] border border-border/80 bg-surface/60 px-5 py-5 shadow-[0_18px_35px_-30px_rgba(26,38,32,0.35)]"
           >
-            <span className="text-xs font-bold text-primary">0{index + 1}</span>
+            <span className="text-[10px] font-black tracking-[0.22em] text-primary">
+              0{index + 1}
+            </span>
             <h2 className="mt-5 text-lg font-semibold text-foreground">
               {pillar.title}
             </h2>

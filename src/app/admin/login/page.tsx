@@ -52,8 +52,8 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-[70vh] max-w-lg items-center justify-center px-6 py-16 lg:px-8">
-      <Card className="w-full">
+    <main className="mx-auto flex min-h-[70vh] max-w-lg items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+      <Card className="w-full rounded-md">
         <CardHeader>
           <CardTitle className="text-2xl">ورود پنل ادمین</CardTitle>
         </CardHeader>

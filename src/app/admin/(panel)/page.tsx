@@ -79,16 +79,16 @@ export default async function AdminPage() {
   return (
     <div className="space-y-6">
       {/* ─── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80 lg:p-10">
+      <section className="admin-hero rounded-md p-6 sm:p-8 lg:p-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
+            <p className="text-[10px] font-black uppercase tracking-[0.32em] text-primary">
               Admin Panel
             </p>
-            <h1 className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">
+            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-foreground">
               داشبورد مدیریت منو
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600 dark:text-stone-400">
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
               پنل شما در حال حاضر برای مدیریت محتوای برند، منو و تجربه مشتری
               آماده است.
             </p>
@@ -102,12 +102,12 @@ export default async function AdminPage() {
       {/* ─── Stats ────────────────────────────────────────────────────────── */}
       <section className="grid gap-6 md:grid-cols-3">
         {dashboardStats.map((stat) => (
-          <Card key={stat.label}>
+          <Card key={stat.label} className="rounded-[1.2rem]">
             <CardHeader>
               <CardTitle>{stat.label}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+              <p className="text-3xl font-semibold tabular-nums text-primary">
                 {stat.value.toLocaleString("fa-IR")}
               </p>
             </CardContent>
@@ -117,7 +117,7 @@ export default async function AdminPage() {
 
       {/* ─── Featured + Quick Actions ─────────────────────────────────────── */}
       <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <Card>
+        <Card className="rounded-[1.2rem]">
           <CardHeader>
             <CardTitle>پیشنهادهای امروز</CardTitle>
           </CardHeader>
@@ -126,32 +126,30 @@ export default async function AdminPage() {
               featuredItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/50"
+                  className="flex items-start justify-between gap-3 rounded-[1rem] border border-border/80 bg-surface-raised/80 p-4"
                 >
                   <div>
-                    <p className="font-semibold text-stone-900 dark:text-stone-100">
-                      {item.name}
-                    </p>
+                    <p className="font-semibold text-foreground">{item.name}</p>
                     {item.description && (
-                      <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         {item.description}
                       </p>
                     )}
                   </div>
-                  <span className="shrink-0 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                  <span className="shrink-0 text-sm font-semibold text-primary">
                     {formatPrice(item.price)}
                   </span>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-stone-500">
+              <p className="text-sm text-muted-foreground">
                 هیچ آیتم ویژه‌ای یافت نشد.
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-[1.2rem]">
           <CardHeader>
             <CardTitle>اقدامات سریع</CardTitle>
           </CardHeader>
@@ -165,9 +163,9 @@ export default async function AdminPage() {
             ).map(({ icon: Icon, label }) => (
               <div
                 key={label}
-                className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm leading-7 text-stone-600 dark:border-stone-800 dark:bg-stone-950/50 dark:text-stone-400"
+                className="flex items-center gap-3 rounded-[1rem] border border-border/80 bg-surface-raised/80 p-4 text-sm leading-7 text-muted-foreground"
               >
-                <Icon className="h-4 w-4 shrink-0 text-emerald-600" />
+                <Icon className="h-4 w-4 shrink-0 text-primary" />
                 <span>{label}</span>
               </div>
             ))}
@@ -179,12 +177,12 @@ export default async function AdminPage() {
       <section className="grid gap-6 md:grid-cols-2">
         {quickLinks.map((link) => (
           <Link key={link.href} href={link.href} className="block">
-            <Card className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
+            <Card className="h-full rounded-[1.2rem] transition-all hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-30px_rgba(26,38,32,0.45)]">
               <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <CardTitle>{link.title}</CardTitle>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-stone-500" />
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />
               </CardHeader>
-              <CardContent className="text-sm leading-7 text-stone-600 dark:text-stone-400">
+              <CardContent className="text-sm leading-7 text-muted-foreground">
                 {link.description}
               </CardContent>
             </Card>

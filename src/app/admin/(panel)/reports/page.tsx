@@ -365,7 +365,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-4xl border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
+      <section className="admin-hero rounded-md p-6 sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
           Business Intelligence
         </p>

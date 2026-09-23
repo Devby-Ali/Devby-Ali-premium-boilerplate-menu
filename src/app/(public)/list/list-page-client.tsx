@@ -86,13 +86,13 @@ export function ListPageClient() {
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-10 lg:px-8 lg:py-14">
-      <section className="border-b border-border pb-8">
+      <section className="border-b border-border/80 pb-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.28em] text-secondary">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-secondary">
               انتخاب امروز
             </p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">
+            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl">
               منوی کافه
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -117,8 +117,8 @@ export function ListPageClient() {
               onClick={() => setActiveCategory(cat.slug)}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 activeCategory === cat.slug
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border bg-surface text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-[0_18px_30px_-18px_rgba(47,107,86,0.75)]"
+                  : "border border-border/80 bg-surface/70 text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
               {cat.label}
@@ -135,7 +135,10 @@ export function ListPageClient() {
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredItems.map((item) => (
-          <Card key={item.slug} className="group overflow-hidden rounded-md">
+          <Card
+            key={item.slug}
+            className="group overflow-hidden rounded-[1.2rem]"
+          >
             <Link
               href={`/product/${item.slug}`}
               className="relative block aspect-[16/10] w-full overflow-hidden bg-surface-raised"
@@ -147,10 +150,10 @@ export function ListPageClient() {
                   alt={item.title}
                   fill
                   sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
-                  className="object-cover transition-transform duration-300 hover:scale-105"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgb(154_79_47_/_0.18),transparent_65%)] text-sm text-muted-foreground">
+                <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(47,107,86,0.18),transparent_65%)] text-sm text-muted-foreground">
                   بدون تصویر
                 </div>
               )}
@@ -164,7 +167,7 @@ export function ListPageClient() {
                   </p>
                 </div>
                 {item.featured ? (
-                  <span className="border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent-foreground">
+                  <span className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-[10px] font-black tracking-[0.18em] text-secondary">
                     ویژه
                   </span>
                 ) : null}

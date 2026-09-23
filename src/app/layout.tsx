@@ -56,7 +56,7 @@ export default function RootLayout({
         <ThemeProvider>
           <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:right-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:shadow-lg"
+            className="sr-only focus:not-sr-only focus:fixed focus:right-4 focus:top-4 focus:z-50 focus:rounded-[0.9rem] focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:shadow-lg"
           >
             رفتن به محتوای اصلی
           </a>
@@ -64,15 +64,24 @@ export default function RootLayout({
           <main id="main-content" className="flex-1">
             {children}
           </main>
-          <footer className="border-t border-border px-6 py-10 text-sm text-muted-foreground">
-            <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                <p className="font-bold text-foreground">کافه رستوران</p>
-                <p className="mt-1 text-xs">
-                  یک تجربه‌ی ساده، دقیق و به‌یادماندنی.
+          <footer className="px-4 pb-8 pt-12 text-sm text-muted-foreground sm:px-6 lg:px-8">
+            <div className="footer-shell mx-auto max-w-7xl px-5 py-6 sm:px-7">
+              <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">
+                    Open table / good taste
+                  </p>
+                  <p className="mt-2 font-black text-foreground">
+                    کافه رستوران
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    یک تجربه‌ی ساده، دقیق و به‌یادماندنی.
+                  </p>
+                </div>
+                <p className="text-xs tracking-[0.14em] text-muted-foreground">
+                  © {new Date().getFullYear()} تمامی حقوق محفوظ است
                 </p>
               </div>
-              <p>© {new Date().getFullYear()} تمامی حقوق محفوظ است</p>
             </div>
           </footer>
         </ThemeProvider>

@@ -7,12 +7,7 @@ import * as React from "react";
 import { BellRing, CheckCheck, CircleDot } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { WaiterCallStatus } from "@/types";
 
 interface LiveWaiterCall {
@@ -35,8 +30,7 @@ const STATUS_STYLES: Record<WaiterCallStatus, string> = {
     "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
   ACKNOWLEDGED:
     "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
-  RESOLVED:
-    "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400",
+  RESOLVED: "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400",
 };
 
 function relativeTime(iso: string): string {
@@ -49,9 +43,9 @@ function relativeTime(iso: string): string {
 
 export default function AdminWaiterCallsPage() {
   const [calls, setCalls] = React.useState<LiveWaiterCall[]>([]);
-  const [connection, setConnection] = React.useState<"connecting" | "open" | "error">(
-    "connecting"
-  );
+  const [connection, setConnection] = React.useState<
+    "connecting" | "open" | "error"
+  >("connecting");
   const [updating, setUpdating] = React.useState<string | null>(null);
   const callsRef = React.useRef<LiveWaiterCall[]>([]);
 
@@ -64,7 +58,8 @@ export default function AdminWaiterCallsPage() {
     const map = new Map(callsRef.current.map((c) => [c.id, c]));
     for (const call of incoming) map.set(call.id, call);
     const merged = [...map.values()].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
     callsRef.current = merged;
     setCalls(merged);
@@ -80,7 +75,9 @@ export default function AdminWaiterCallsPage() {
     source.addEventListener("waiter-calls", (event) => {
       setConnection("open");
       try {
-        const events = JSON.parse((event as MessageEvent<string>).data) as LiveWaiterCall[];
+        const events = JSON.parse(
+          (event as MessageEvent<string>).data,
+        ) as LiveWaiterCall[];
         upsertMany(events);
       } catch {
         // payload خراب نادیده گرفته می‌شود؛ اتصال برقرار می‌ماند
@@ -117,7 +114,7 @@ export default function AdminWaiterCallsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
+      <section className="admin-hero rounded-md p-6 sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
           Live Service Calls
         </p>
@@ -141,7 +138,11 @@ export default function AdminWaiterCallsPage() {
             }`}
           >
             <CircleDot className="h-3 w-3" />
-            {connection === "open" ? "زنده" : connection === "connecting" ? "..." : "قطع"}
+            {connection === "open"
+              ? "زنده"
+              : connection === "connecting"
+                ? "..."
+                : "قطع"}
           </span>
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600 dark:text-stone-400">
@@ -161,12 +162,18 @@ export default function AdminWaiterCallsPage() {
         {calls.slice(0, 30).map((call) => (
           <Card
             key={call.id}
-            className={call.status === "PENDING" ? "ring-2 ring-amber-300 dark:ring-amber-700" : undefined}
+            className={
+              call.status === "PENDING"
+                ? "ring-2 ring-amber-300 dark:ring-amber-700"
+                : undefined
+            }
           >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-xl">
-                  {call.tableNumber ? `میز ${call.tableNumber.toLocaleString("fa-IR")}` : "میز نامشخص"}
+                  {call.tableNumber
+                    ? `میز ${call.tableNumber.toLocaleString("fa-IR")}`
+                    : "میز نامشخص"}
                 </CardTitle>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_STYLES[call.status]}`}
@@ -175,7 +182,8 @@ export default function AdminWaiterCallsPage() {
                 </span>
               </div>
               <p className="mt-1 text-xs text-stone-400">
-                ثبت: {relativeTime(call.createdAt)} · آخرین تغییر: {relativeTime(call.updatedAt)}
+                ثبت: {relativeTime(call.createdAt)} · آخرین تغییر:{" "}
+                {relativeTime(call.updatedAt)}
               </p>
             </CardHeader>
             {(call.status === "PENDING" || call.status === "ACKNOWLEDGED") && (

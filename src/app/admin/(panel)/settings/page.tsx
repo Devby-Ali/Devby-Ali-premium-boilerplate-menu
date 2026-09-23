@@ -138,7 +138,7 @@ export default function AdminSettingsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
+        <section className="admin-hero rounded-md p-6 sm:p-8">
           <p className="text-sm text-stone-600 dark:text-stone-400">
             در حال بارگذاری تنظیمات...
           </p>
@@ -149,7 +149,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
+      <section className="admin-hero rounded-md p-6 sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
           Brand Settings
         </p>

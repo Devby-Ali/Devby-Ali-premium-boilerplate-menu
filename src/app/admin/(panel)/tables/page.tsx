@@ -69,7 +69,7 @@ function QrDialog({ table, baseUrl, onClose }: QrDialogProps) {
       width: 200,
       margin: 2,
       color: {
-        dark: "#1c1917",  // stone-900
+        dark: "#1c1917", // stone-900
         light: "#ffffff",
       },
     });
@@ -89,7 +89,7 @@ function QrDialog({ table, baseUrl, onClose }: QrDialogProps) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-sm rounded-3xl border border-stone-200 bg-white p-8 shadow-2xl dark:border-stone-700 dark:bg-stone-900"
+        className="glass-panel relative w-full max-w-sm rounded-md p-8 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -161,8 +161,7 @@ export default function AdminTablesPage() {
   const [qrTable, setQrTable] = React.useState<Table | null>(null);
 
   // آدرس پایه سایت برای QR Code
-  const baseUrl =
-    typeof window !== "undefined" ? window.location.origin : "";
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   // ─── بارگذاری داده‌ها ──────────────────────────────────────────────────────
 
@@ -235,7 +234,7 @@ export default function AdminTablesPage() {
         body: JSON.stringify(
           editingId
             ? { id: editingId, number, capacity, isActive: draft.isActive }
-            : { number, capacity, isActive: draft.isActive }
+            : { number, capacity, isActive: draft.isActive },
         ),
       });
 
@@ -262,13 +261,11 @@ export default function AdminTablesPage() {
                 active: draft.isActive ? prev.active + 1 : prev.active,
                 inactive: !draft.isActive ? prev.inactive + 1 : prev.inactive,
               }
-            : prev
+            : prev,
         );
       }
     } catch (error) {
-      setFeedback(
-        error instanceof Error ? error.message : "خطایی رخ داد."
-      );
+      setFeedback(error instanceof Error ? error.message : "خطایی رخ داد.");
     } finally {
       setSubmitting(false);
     }
@@ -298,9 +295,7 @@ export default function AdminTablesPage() {
       removeTable(id);
       setFeedback(payload.message ?? "میز با موفقیت حذف شد.");
     } catch (error) {
-      setFeedback(
-        error instanceof Error ? error.message : "خطایی رخ داد."
-      );
+      setFeedback(error instanceof Error ? error.message : "خطایی رخ داد.");
     } finally {
       setSubmitting(false);
     }
@@ -334,7 +329,7 @@ export default function AdminTablesPage() {
       )}
 
       {/* Header */}
-      <section className="rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm dark:border-stone-800 dark:bg-stone-900/80">
+      <section className="admin-hero rounded-md p-6 sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
           Table Manager
         </p>
@@ -351,8 +346,18 @@ export default function AdminTablesPage() {
         <section className="grid gap-4 sm:grid-cols-3">
           {[
             { label: "کل میزها", value: stats.total, icon: LayoutGrid },
-            { label: "فعال", value: stats.active, icon: CheckCircle2, color: "text-emerald-600" },
-            { label: "غیرفعال", value: stats.inactive, icon: XCircle, color: "text-rose-500" },
+            {
+              label: "فعال",
+              value: stats.active,
+              icon: CheckCircle2,
+              color: "text-emerald-600",
+            },
+            {
+              label: "غیرفعال",
+              value: stats.inactive,
+              icon: XCircle,
+              color: "text-rose-500",
+            },
           ].map(({ label, value, icon: Icon, color }) => (
             <Card key={label}>
               <CardHeader className="pb-2">
@@ -399,8 +404,8 @@ export default function AdminTablesPage() {
               {editingId ? "ویرایش میز" : "افزودن میز جدید"}
             </CardTitle>
             <CardDescription>
-              اطلاعات میز را وارد کنید. QR Code پس از ثبت به صورت خودکار
-              تولید می‌شود.
+              اطلاعات میز را وارد کنید. QR Code پس از ثبت به صورت خودکار تولید
+              می‌شود.
             </CardDescription>
           </CardHeader>
           <CardContent>

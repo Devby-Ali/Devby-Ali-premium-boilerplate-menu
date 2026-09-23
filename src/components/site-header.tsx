@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X, ArrowUpLeft } from "lucide-react";
+import { Menu, X, ArrowUpLeft, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/store/ui-store";
@@ -19,29 +19,32 @@ export function SiteHeader() {
   const toggleMobileMenu = useUiStore((state) => state.toggleMobileMenu);
 
   return (
-    <header className="glass-panel site-header sticky top-0 z-40 border-0">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5 lg:px-8">
+    <header className="site-header sticky top-0 z-40 px-0 py-0">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground transition-transform group-hover:rotate-6">
-            ک
+          <div className="brand-mark grid h-10 w-10 place-items-center rounded-md text-sm font-black text-primary-foreground transition-transform duration-200 group-hover:-translate-y-0.5">
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground">کافه رستوران</p>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            <p className="text-sm font-black tracking-[0.02em] text-foreground">
+              کافه رستوران
+            </p>
+            <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              <span className="h-px w-4 bg-secondary" aria-hidden="true" />
               Digital menu
             </p>
           </div>
         </Link>
 
         <nav
-          className="hidden items-center gap-1 md:flex"
+          className="header-nav hidden items-center gap-1 md:flex"
           aria-label="ناوبری اصلی"
         >
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              className="header-nav-link px-3 py-2 text-sm font-medium text-muted-foreground transition hover:text-primary"
             >
               {link.label}
             </Link>
@@ -78,14 +81,14 @@ export function SiteHeader() {
       {mobileMenuOpen && (
         <div
           id="mobile-navigation"
-          className="border-t border-border bg-surface px-6 py-4 shadow-sm md:hidden"
+          className="mobile-navigation bg-surface/92 px-4 py-4 shadow-[0_20px_40px_-30px_rgb(var(--shadow-color)/0.9)] backdrop-blur-xl md:hidden"
         >
-          <nav className="flex flex-col gap-3">
+          <nav className="flex flex-col gap-2">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                className="header-nav-link px-3 py-2.5 text-sm font-medium text-muted-foreground transition hover:text-primary"
                 onClick={toggleMobileMenu}
               >
                 {link.label}

@@ -159,13 +159,13 @@ export default function ReservationPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10 lg:px-8">
-      <Card className="overflow-hidden border-emerald-700/40">
-        <CardHeader className="bg-emerald-950 px-6 py-8 text-white sm:px-10">
-          <p className="text-sm font-semibold tracking-[0.2em] text-emerald-200">
+      <Card className="overflow-hidden border-primary/30">
+        <CardHeader className="bg-[radial-gradient(circle_at_top,rgba(124,187,157,0.28),transparent_55%),linear-gradient(135deg,#1e312b_0%,#10211d_100%)] px-6 py-8 text-white sm:px-10">
+          <p className="text-[10px] font-black tracking-[0.22em] text-primary-foreground/80">
             RESERVE YOUR TABLE
           </p>
           <CardTitle className="mt-3 text-3xl text-white">رزرو میز</CardTitle>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-emerald-100">
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-white/75">
             تاریخ شمسی و تعداد مهمانان را انتخاب کنید. بازه‌های رزرو از طریق
             تنظیمات پنل ادمین قابل مدیریت هستند.
           </p>
@@ -186,14 +186,14 @@ export default function ReservationPage() {
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
-                  <span className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-emerald-700" />
+                  <span className="flex items-center gap-2 text-foreground">
+                    <CalendarDays className="h-4 w-4 text-primary" />
                     تاریخ
                   </span>
                   <select
                     value={date}
                     onChange={(event) => setDate(event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-input bg-background px-3"
+                    className="h-11 w-full rounded-md border border-border/80 bg-surface/80 px-3 text-foreground shadow-[0_12px_24px_-22px_rgb(var(--shadow-color)/0.55)] outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                     required
                   >
                     {dates.map((option) => (
@@ -205,14 +205,14 @@ export default function ReservationPage() {
                 </label>
 
                 <label className="space-y-2 text-sm font-medium">
-                  <span>تعداد مهمان</span>
+                  <span className="text-foreground">تعداد مهمان</span>
                   <input
                     type="number"
                     min="1"
                     max="20"
                     value={guestCount}
                     onChange={(event) => setGuestCount(event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-input bg-background px-3"
+                    className="h-11 w-full rounded-[0.9rem] border border-border/80 bg-surface/80 px-3 text-foreground shadow-[0_12px_24px_-22px_rgba(26,38,32,0.5)] outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                     required
                   />
                 </label>
@@ -222,7 +222,10 @@ export default function ReservationPage() {
               <fieldset className="space-y-3">
                 <legend className="text-sm font-medium">بازه‌ی زمانی</legend>
                 {slots.length === 0 ? (
-                  <p className="text-sm text-muted-foreground" aria-live="polite">
+                  <p
+                    className="text-sm text-muted-foreground"
+                    aria-live="polite"
+                  >
                     در حال بارگذاری بازه‌ها...
                   </p>
                 ) : (
@@ -245,12 +248,12 @@ export default function ReservationPage() {
                             aria-checked={isSelected}
                             disabled={!slot.available}
                             onClick={() => setSelectedSlot(slot)}
-                            className={`flex h-14 flex-col items-center justify-center rounded-2xl border text-base font-semibold transition-colors ${
+                            className={`flex h-14 flex-col items-center justify-center rounded-[0.9rem] border text-base font-semibold transition-all ${
                               isSelected
-                                ? "border-emerald-700 bg-emerald-700 text-white shadow-sm dark:border-emerald-500 dark:bg-emerald-600"
+                                ? "border-primary bg-primary text-primary-foreground shadow-[0_18px_26px_-20px_rgba(47,107,86,0.9)]"
                                 : slot.available
-                                  ? "border-emerald-700/50 bg-white text-emerald-900 hover:bg-emerald-50 dark:border-emerald-700 dark:bg-stone-900 dark:text-emerald-100 dark:hover:bg-emerald-950/40"
-                                  : "cursor-not-allowed border-stone-200 bg-stone-50 text-stone-400 line-through dark:border-stone-800 dark:bg-stone-900/40 dark:text-stone-600"
+                                  ? "border-border/80 bg-surface/80 text-foreground hover:bg-muted"
+                                  : "cursor-not-allowed border-border/80 bg-muted/50 text-muted-foreground line-through"
                             }`}
                           >
                             <span>{slotGridLabel(slot)}</span>
@@ -268,34 +271,34 @@ export default function ReservationPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
-                  <span>نام و نام خانوادگی</span>
+                  <span className="text-foreground">نام و نام خانوادگی</span>
                   <input
                     value={guestName}
                     onChange={(event) => setGuestName(event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-input bg-background px-3"
+                    className="h-11 w-full rounded-[0.9rem] border border-border/80 bg-surface/80 px-3 text-foreground shadow-[0_12px_24px_-22px_rgba(26,38,32,0.5)] outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                     required
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
-                  <span>شماره تماس</span>
+                  <span className="text-foreground">شماره تماس</span>
                   <input
                     type="tel"
                     value={guestPhone}
                     onChange={(event) => setGuestPhone(event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-input bg-background px-3"
+                    className="h-11 w-full rounded-[0.9rem] border border-border/80 bg-surface/80 px-3 text-foreground shadow-[0_12px_24px_-22px_rgba(26,38,32,0.5)] outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                     required
                   />
                 </label>
               </div>
 
               <label className="block space-y-2 text-sm font-medium">
-                <span>توضیحات (اختیاری)</span>
+                <span className="text-foreground">توضیحات (اختیاری)</span>
                 <textarea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                   maxLength={500}
                   rows={3}
-                  className="w-full resize-y rounded-2xl border border-input bg-background px-3 py-3"
+                  className="w-full resize-y rounded-[0.9rem] border border-border/80 bg-surface/80 px-3 py-3 text-foreground shadow-[0_12px_24px_-22px_rgba(26,38,32,0.5)] outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                 />
               </label>
 
@@ -304,7 +307,7 @@ export default function ReservationPage() {
                   className={`text-sm ${
                     slots.some((slot) => slot.isActive && slot.available)
                       ? "text-muted-foreground"
-                      : "text-rose-700 dark:text-rose-400"
+                      : "text-secondary"
                   }`}
                   aria-live="polite"
                 >
