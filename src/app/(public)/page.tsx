@@ -45,12 +45,13 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-16 px-6 pb-20 pt-8 lg:px-8 lg:pt-12">
+    <main className="mx-auto flex max-w-7xl flex-col gap-16 pb-20 pt-8 lg:pt-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <section className="relative overflow-hidden border-y border-border/80 py-10 sm:py-12 lg:py-20">
+      <section className="relative overflow-hidden border-y border-border/80 py-10 sm:py-12 lg:py-20 px-2 md:px-4
+ lg:px-12">
         <div className="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-secondary/10 blur-3xl" />
         <div className="relative grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
@@ -97,7 +98,7 @@ export default async function Home() {
                 <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-foreground">
                   یک فنجان خوب
                 </p>
-                <div className="mt-5 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <div className="mt-8 flex flex-wrap gap-2 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-surface/80 px-2.5 py-1.5">
                     <Leaf className="h-3.5 w-3.5 text-primary" /> تازه و دست‌ساز
                   </span>
@@ -110,89 +111,95 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
-      {featuredItems.length > 0 && (
-        <section className="space-y-6">
-          <div className="flex items-end justify-between gap-4 border-b border-border/80 pb-5">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-secondary">
-                از منوی امروز
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-foreground">
-                پیشنهادهای ویژه
-              </h2>
+      <section
+        className="px-2 md:px-4
+ lg:px-6"
+      >
+        {featuredItems.length > 0 && (
+          <section className="space-y-6">
+            <div className="flex items-end justify-between gap-4 border-b border-border/80 pb-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-secondary">
+                  از منوی امروز
+                </p>
+                <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-foreground">
+                  پیشنهادهای ویژه
+                </h2>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/list">
+                  دیدن همه <ArrowUpLeft className="h-4 w-4" />
+                </Link>
+              </Button>
             </div>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/list">
-                دیدن همه <ArrowUpLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {featuredItems.map((item) => (
-              <article
-                key={item.slug}
-                className="glass-panel group flex items-center justify-between gap-4 rounded-[1.2rem] p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_44px_-28px_rgba(26,38,32,0.5)]"
-              >
-                <div className="flex items-center gap-4">
-                  {item.imageUrl ? (
-                    <span className="relative block h-20 w-20 shrink-0 overflow-hidden rounded-[0.9rem] border border-border/80 bg-muted">
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.name}
-                        fill
-                        sizes="4rem"
-                        className="object-cover"
-                      />
-                    </span>
-                  ) : null}
-                  <div>
-                    <p className="font-semibold text-foreground">{item.name}</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {item.description}
-                    </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {featuredItems.map((item) => (
+                <article
+                  key={item.slug}
+                  className="glass-panel group flex items-center justify-between gap-4 rounded-[1.2rem] p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_44px_-28px_rgba(26,38,32,0.5)]"
+                >
+                  <div className="flex items-center gap-4">
+                    {item.imageUrl ? (
+                      <span className="relative block h-20 w-20 shrink-0 overflow-hidden rounded-[0.9rem] border border-border/80 bg-muted">
+                        <Image
+                          src={item.imageUrl}
+                          alt={item.name}
+                          fill
+                          sizes="4rem"
+                          className="object-cover"
+                        />
+                      </span>
+                    ) : null}
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {item.name}
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {item.description}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="shrink-0 text-left">
-                  <p className="text-sm font-semibold text-primary">
-                    {formatPrice(item.price)}
-                  </p>
-                  <Link
-                    className="mt-3 inline-flex text-xs font-semibold text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
-                    href={`/product/${item.slug}`}
-                  >
-                    جزئیات
-                  </Link>
-                </div>
-              </article>
+                  <div className="shrink-0 text-left">
+                    <p className="text-sm font-semibold text-primary">
+                      {formatPrice(item.price)}
+                    </p>
+                    <Link
+                      className="mt-3 inline-flex text-xs font-semibold text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+                      href={`/product/${item.slug}`}
+                    >
+                      جزئیات
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="grid gap-8 border-t border-border/80 pt-12 md:grid-cols-3">
+          <div className="md:col-span-1">
+            <SectionHeading
+              eyebrow="درباره ما"
+              title="کیفیت در هر جزئیات"
+              description="از انتخاب دانه‌های قهوه تا سرو نهایی، هر مرحله با دقت و علاقه انجام می‌شود."
+            />
+          </div>
+          <div className="md:col-span-2 grid gap-3 sm:grid-cols-3">
+            {highlights.map((item, index) => (
+              <div
+                key={item}
+                className="rounded-[1.1rem] border border-border/80 bg-surface/60 px-5 py-5 shadow-[0_18px_35px_-30px_rgba(26,38,32,0.4)]"
+              >
+                <span className="text-xs font-black tracking-[0.24em] text-primary">
+                  0{index + 1}
+                </span>
+                <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                  {item}
+                </p>
+              </div>
             ))}
           </div>
         </section>
-      )}
-
-      <section className="grid gap-8 border-t border-border/80 pt-12 md:grid-cols-3">
-        <div className="md:col-span-1">
-          <SectionHeading
-            eyebrow="درباره ما"
-            title="کیفیت در هر جزئیات"
-            description="از انتخاب دانه‌های قهوه تا سرو نهایی، هر مرحله با دقت و علاقه انجام می‌شود."
-          />
-        </div>
-        <div className="md:col-span-2 grid gap-3 sm:grid-cols-3">
-          {highlights.map((item, index) => (
-            <div
-              key={item}
-              className="rounded-[1.1rem] border border-border/80 bg-surface/60 px-5 py-5 shadow-[0_18px_35px_-30px_rgba(26,38,32,0.4)]"
-            >
-              <span className="text-xs font-black tracking-[0.24em] text-primary">
-                0{index + 1}
-              </span>
-              <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                {item}
-              </p>
-            </div>
-          ))}
-        </div>
       </section>
     </main>
   );

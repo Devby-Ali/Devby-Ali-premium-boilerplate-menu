@@ -101,7 +101,7 @@ export default function RootLayout({
                           Devby-Ali
                         </a>
                       </span>
-                      Developed by :
+                    :  Developed by
                     </p>
                     <div className="footer-credit-popover" role="tooltip">
                       <span className="footer-avatar">
@@ -121,7 +121,7 @@ export default function RootLayout({
                 </section>
               </div>
               <div className="mt-6 flex flex-col gap-2 border-t border-border/50 pt-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                <p>© 2020. All rights reserved.</p>
+                <p>© 2026. All rights reserved.</p>
                 <p className="tracking-[0.12em]">CRAFTED FOR GOOD TASTE</p>
               </div>
             </div>
