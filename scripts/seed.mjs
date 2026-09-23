@@ -12,6 +12,7 @@
 
 import bcrypt from "bcryptjs";
 import { MongoClient, ObjectId } from "mongodb";
+import { randomUUID } from "node:crypto";
 
 // Load .env (Node ≥ 20.12). Falls back to the local default.
 try {
@@ -124,10 +125,36 @@ async function main() {
 
   // ── Categories ──────────────────────────────────────────────────
   const categories = [
-    { slug: "coffee", name: "کافی‌شاپ", sortOrder: 1 },
-    { slug: "dessert", name: "دسر", sortOrder: 2 },
-    { slug: "savory", name: "اشنایی", sortOrder: 3 },
-    { slug: "signature", name: "ویژه", sortOrder: 4 },
+    {
+      slug: "hot-coffee",
+      name: "قهوه گرم",
+      description: "قهوه‌های تخصصی با دانه‌های تازه‌رُست و عصاره‌گیری دقیق.",
+      sortOrder: 1,
+    },
+    {
+      slug: "cold-drinks",
+      name: "نوشیدنی سرد",
+      description: "نوشیدنی‌های خنک، میوه‌ای و دست‌ساز برای روزهای گرم.",
+      sortOrder: 2,
+    },
+    {
+      slug: "desserts",
+      name: "شیرینی و دسر",
+      description: "دسرهای روزانه با مواد تازه و شیرینی متعادل.",
+      sortOrder: 3,
+    },
+    {
+      slug: "breakfast",
+      name: "صبحانه و میان‌وعده",
+      description: "بشقاب‌های سبک و تازه برای شروعی آرام و خوش‌طعم.",
+      sortOrder: 4,
+    },
+    {
+      slug: "signature",
+      name: "امضای کافه",
+      description: "ترکیب‌های اختصاصی که فقط در کافه ما پیدا می‌کنید.",
+      sortOrder: 5,
+    },
   ];
   const categoryIds = {};
   for (const cat of categories) {
@@ -138,7 +165,7 @@ async function main() {
           _id: new ObjectId(),
           name: cat.name,
           slug: cat.slug,
-          description: `${cat.name} از منوی دیجیتال`,
+          description: cat.description,
           parentId: null,
           isActive: true,
           sortOrder: cat.sortOrder,
@@ -155,48 +182,184 @@ async function main() {
   // ── Demo menu items ─────────────────────────────────────────────
   const menuItems = [
     {
-      name: "Espresso Noir",
-      title: "اسپرسو نوار",
-      category: "coffee",
-      price: 98000,
+      name: "Espresso Double Shot",
+      category: "hot-coffee",
+      price: 118000,
       preparationTime: 5,
       isFeatured: true,
+      imageUrl:
+        "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?auto=format&fit=crop&w=1200&q=85",
       description:
-        "اسپرسوی پرفشار با دانه‌های عربیکای تازه‌بوای‌شده؛ بدنه‌ای غلیظ و کرمای مخملی.",
-      tags: ["دانه عربیکا", "تازه دم", "بدون شیر"],
+        "دو شات اسپرسو با دانه ۱۰۰٪ عربیکای تازه‌رُست؛ بدنه‌ای غلیظ، کرمای پایدار و پایان طعمی شکلاتی.",
+      tags: ["عربیکا", "شکلات تلخ", "بدون شیر"],
     },
     {
-      name: "Saffron Latte",
-      title: "لاته زعفرانی",
-      category: "coffee",
-      price: 145000,
+      name: "Saffron Rose Latte",
+      category: "hot-coffee",
+      price: 198000,
       preparationTime: 8,
       isFeatured: true,
+      imageUrl:
+        "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=1200&q=85",
       description:
-        "ترکیب لطیف اسپرسو، شیر بخارداده و زعفران اصل قائنات با عصاره گلاب.",
-      tags: ["زعفران", "شیر بخارداده", "گلاب"],
+        "اسپرسو، شیر بخارداده، زعفران قائنات و رایحه ظریف گل سرخ؛ متعادل، معطر و مناسب عصرهای آرام.",
+      tags: ["زعفران", "گل سرخ", "شیر بخارداده"],
     },
     {
-      name: "Saffron Cheesecake",
-      title: "چیزکیک زعفرانی",
-      category: "dessert",
-      price: 165000,
+      name: "Vanilla Flat White",
+      category: "hot-coffee",
+      price: 185000,
+      preparationTime: 7,
+      isFeatured: false,
+      imageUrl:
+        "https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "فلت‌وایت با میکروفوم ابریشمی، اسپرسوی روشن و مقدار کمی وانیل طبیعی برای شیرینی لطیف.",
+      tags: ["وانیل طبیعی", "میکروفوم", "اسپرسو"],
+    },
+    {
+      name: "Cardamom Turkish Coffee",
+      category: "hot-coffee",
+      price: 145000,
+      preparationTime: 8,
+      isFeatured: false,
+      imageUrl:
+        "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "قهوه ترک آسیاب‌ریز با هل سبز و سرو سنتی؛ فنجانی کوچک با عطر عمیق و ماندگار.",
+      tags: ["قهوه ترک", "هل", "سرو سنتی"],
+    },
+    {
+      name: "Citrus Cold Brew",
+      category: "cold-drinks",
+      price: 215000,
+      preparationTime: 6,
+      isFeatured: true,
+      imageUrl:
+        "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "کلدبرو ۱۸ساعته با تونیک مرکبات، پوست پرتقال و یخ شفاف؛ خنک، روشن و کم‌اسید.",
+      tags: ["کلدبرو", "پرتقال", "تونیک"],
+    },
+    {
+      name: "Berry Hibiscus Cooler",
+      category: "cold-drinks",
+      price: 225000,
+      preparationTime: 7,
+      isFeatured: false,
+      imageUrl:
+        "https://images.unsplash.com/photo-1546173159-315724a31696?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "چای ترش دم‌سرد، توت‌های جنگلی، لیمو و آب گازدار؛ رنگی چشم‌نواز با طعمی ترش و تازه.",
+      tags: ["چای ترش", "توت جنگلی", "لیمو"],
+    },
+    {
+      name: "Mango Passion Smoothie",
+      category: "cold-drinks",
+      price: 248000,
+      preparationTime: 9,
+      isFeatured: false,
+      imageUrl:
+        "https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "انبه رسیده، پشن‌فروت، ماست یونانی و یخ؛ اسموتی غلیظ و استوایی بدون شربت مصنوعی.",
+      tags: ["انبه", "پشن‌فروت", "ماست یونانی"],
+    },
+    {
+      name: "Pistachio Basque Cheesecake",
+      category: "desserts",
+      price: 285000,
+      preparationTime: 3,
+      isFeatured: true,
+      imageUrl:
+        "https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "چیزکیک باسک با مغز نیم‌سوز، مرکز کرمی و لایه‌ای از کرم پسته؛ برش روزانه کافه.",
+      tags: ["پسته", "کرم پنیر", "بافت کرمی"],
+    },
+    {
+      name: "Dark Chocolate Tart",
+      category: "desserts",
+      price: 265000,
+      preparationTime: 3,
+      isFeatured: false,
+      imageUrl:
+        "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "تارت شکلات تلخ ۷۰٪ با گاناش براق و نمک دریایی؛ انتخابی عمیق برای دوستداران شکلات.",
+      tags: ["شکلات ۷۰٪", "گاناش", "نمک دریایی"],
+    },
+    {
+      name: "Cinnamon Morning Roll",
+      category: "desserts",
+      price: 155000,
+      preparationTime: 4,
+      isFeatured: false,
+      imageUrl:
+        "https://images.unsplash.com/photo-1509365465985-25d11c17e812?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "رول دارچینی تازه از فر با کره، دارچین سیلان و لعاب پنیر خامه‌ای سبک.",
+      tags: ["دارچین سیلان", "تازه از فر", "پنیر خامه‌ای"],
+    },
+    {
+      name: "Avocado Sourdough Toast",
+      category: "breakfast",
+      price: 295000,
+      preparationTime: 12,
+      isFeatured: true,
+      imageUrl:
+        "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "نان خمیرترش تست‌شده با آووکادو، تخم‌مرغ نیمرو، فلفل چیلی و سبزی‌های تازه.",
+      tags: ["آووکادو", "تخم‌مرغ", "خمیرترش"],
+    },
+    {
+      name: "Labneh Garden Plate",
+      category: "breakfast",
+      price: 265000,
       preparationTime: 10,
       isFeatured: false,
+      imageUrl:
+        "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=85",
       description:
-        "چیزکیک پخته‌شده با کرم زعفران و پودر پسته؛ همراه با سس گل سرخ.",
-      tags: ["زعفران", "پسته", "کرم پنیر"],
+        "لبنه چکیده، سبزی‌های فصل، زیتون، گردو و نان تازه؛ بشقابی سبک برای صبح‌های طولانی.",
+      tags: ["لبنه", "زیتون", "گردو"],
     },
     {
-      name: "Herb Panini",
-      title: "پانینی سبزیجات",
-      category: "savory",
-      price: 185000,
+      name: "Truffle Mushroom Panini",
+      category: "breakfast",
+      price: 335000,
       preparationTime: 15,
       isFeatured: false,
+      imageUrl:
+        "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=1200&q=85",
       description:
-        "پانینی گریل‌شده با سبزیجات تازه باغی، پنیر موتزارلا و سس پستو خانگی.",
-      tags: ["سبزیجات تازه", "موتزارلا", "پستو"],
+        "نان چاباتا با قارچ تفت‌داده، پنیر گودا، پیاز کاراملی و سس ترافل.",
+      tags: ["قارچ", "گودا", "ترافل"],
+    },
+    {
+      name: "Rose Pistachio Milk Cake",
+      category: "signature",
+      price: 245000,
+      preparationTime: 5,
+      isFeatured: true,
+      imageUrl:
+        "https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "کیک شیری لطیف با خامه گل سرخ، پسته برشته و عطر هل؛ امضای شیرین کافه.",
+      tags: ["گل سرخ", "پسته", "هل"],
+    },
+    {
+      name: "Smoked Orange Tonic",
+      category: "signature",
+      price: 235000,
+      preparationTime: 8,
+      isFeatured: true,
+      imageUrl:
+        "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=1200&q=85",
+      description:
+        "شربت پرتقال دودی، چای سیاه، تونیک و رزماری؛ نوشیدنی اختصاصی با پایان گیاهی.",
+      tags: ["پرتقال دودی", "چای سیاه", "رزماری"],
     },
   ];
 
@@ -205,19 +368,46 @@ async function main() {
     await db.collection("menu_items").findOneAndUpdate(
       { slug },
       {
-        $setOnInsert: {
-          _id: new ObjectId(),
+        $set: {
           name: item.name,
-          slug,
           description: item.description,
           price: item.price,
           currency: "IRR",
-          imageUrl: null,
+          imageUrl: item.imageUrl,
           categoryId: categoryIds[item.category],
+          inStock: true,
           isFeatured: item.isFeatured,
           isActive: true,
           preparationTime: item.preparationTime,
           tags: item.tags,
+          updatedAt: now(),
+        },
+        $setOnInsert: { _id: new ObjectId(), slug, createdAt: now() },
+      },
+      { upsert: true },
+    );
+  }
+  console.log(`✓ Menu items seeded (${menuItems.length})`);
+
+  // ── Demo tables for QR showcase ─────────────────────────────────
+  const tables = [
+    { number: 1, capacity: 2 },
+    { number: 2, capacity: 2 },
+    { number: 3, capacity: 4 },
+    { number: 4, capacity: 4 },
+    { number: 5, capacity: 6 },
+    { number: 6, capacity: 8 },
+  ];
+  for (const table of tables) {
+    await db.collection("tables").findOneAndUpdate(
+      { number: table.number },
+      {
+        $setOnInsert: {
+          _id: new ObjectId(),
+          number: table.number,
+          token: randomUUID(),
+          capacity: table.capacity,
+          isActive: true,
           createdAt: now(),
           updatedAt: now(),
         },
@@ -225,7 +415,8 @@ async function main() {
       { upsert: true },
     );
   }
-  console.log(`✓ Menu items seeded (${menuItems.length})`);
+  await db.collection("tables").createIndex({ token: 1 }, { unique: true });
+  console.log(`✓ Tables seeded (${tables.length})`);
 
   // ── Demo orders (read-only admin preview — PRD UC-08) ───────────
   const ordersCount = await db.collection("orders").countDocuments();

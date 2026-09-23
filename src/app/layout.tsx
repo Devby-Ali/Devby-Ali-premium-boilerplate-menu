@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import localFont from "next/font/local";
+import { GitBranch, Gem } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { env } from "@/lib/env";
@@ -66,7 +68,7 @@ export default function RootLayout({
           </main>
           <footer className="px-4 pb-8 pt-12 text-sm text-muted-foreground sm:px-6 lg:px-8">
             <div className="footer-shell mx-auto max-w-7xl px-5 py-6 sm:px-7">
-              <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+              <div className="flex flex-col justify-between gap-8 sm:flex-row sm:items-end">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">
                     Open table / good taste
@@ -78,9 +80,49 @@ export default function RootLayout({
                     یک تجربه‌ی ساده، دقیق و به‌یادماندنی.
                   </p>
                 </div>
-                <p className="text-xs tracking-[0.14em] text-muted-foreground">
-                  © {new Date().getFullYear()} تمامی حقوق محفوظ است
-                </p>
+                <section className="footer-credit group/credit relative flex items-center gap-3 sm:max-w-[22rem]">
+                  <span className="footer-credit-icon mt-px grid h-11 w-11 shrink-0 place-items-center rounded-md text-primary-foreground">
+                    <Gem className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div className="relative mb-1 min-w-0 text-sm tracking-wide">
+                    <p className="text-muted-foreground">
+                      <span className="mx-1 inline-flex items-center gap-1 align-[-0.2em]">
+                        <GitBranch
+                          className="h-4 w-4 text-secondary"
+                          aria-hidden="true"
+                        />
+                        <a
+                          href="https://github.com/Devby-Ali"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="footer-credit-link text-base font-semibold text-primary"
+                          aria-label="View Devby-Ali on GitHub"
+                        >
+                          Devby-Ali
+                        </a>
+                      </span>
+                      Developed by :
+                    </p>
+                    <div className="footer-credit-popover" role="tooltip">
+                      <span className="footer-avatar">
+                        <Image
+                          src="/DevbyAli.jpg"
+                          alt="Ali Bakhshi"
+                          width={44}
+                          height={44}
+                          loading="lazy"
+                        />
+                      </span>
+                      <span className="text-xs leading-6 text-foreground">
+                        Ali Bakhshi | Front-end React
+                      </span>
+                    </div>
+                  </div>
+                </section>
+              </div>
+              <div className="mt-6 flex flex-col gap-2 border-t border-border/50 pt-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                <p>© 2020. All rights reserved.</p>
+                <p className="tracking-[0.12em]">CRAFTED FOR GOOD TASTE</p>
               </div>
             </div>
           </footer>
